@@ -8,7 +8,8 @@ import {
     Settings,
     Wallet,
     FileText,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 import { useWorkspaceStore, WORKSPACES } from '@/stores/workspaceStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -43,6 +44,7 @@ export function Sidebar() {
         { path: '/finance', icon: Wallet, label: 'Finanças', show: isFamilia },
         { path: '/tasks', icon: CheckSquare, label: 'Tarefas', show: true },
         { path: '/projects', icon: FolderKanban, label: 'Projetos', show: true },
+        { path: '/calendar', icon: CalendarIcon, label: 'Calendário', show: true },
         { path: '/docs', icon: FileText, label: 'Documentos', show: isFamilia },
         { path: '/integrations', icon: LinkIcon, label: 'Integrações', show: isFamilia },
     ];
