@@ -19,8 +19,8 @@ export const WORKSPACES: Workspace[] = [
     {
         id: 'familia',
         name: 'familia',
-        displayName: 'Família',
-        avatar: 'F',
+        displayName: 'Visão Geral',
+        avatar: 'VG',
         color: 'familia',
     },
 ];
@@ -31,6 +31,6 @@ interface WorkspaceState {
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
-    activeWorkspace: WORKSPACES[0],
+    activeWorkspace: WORKSPACES[2], // Starts on 'Visão Geral'
     setActiveWorkspace: (workspace) => set({ activeWorkspace: workspace }),
 }));

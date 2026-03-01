@@ -20,8 +20,9 @@ export function Sidebar() {
     const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
     const { ollamaStatus, checkOllamaStatus, setActiveConversation } = useChatStore();
 
-    const handleSwitchWorkspace = (ws: Workspace) => {
-        if (ws.id !== activeWorkspace.id) {
+    const handleSwitchWorkspace = (wsId: string) => {
+        if (wsId !== activeWorkspace.id) {
+            const ws = WORKSPACES.find(w => w.id === wsId)!;
             setActiveWorkspace(ws);
             setActiveConversation(null);
             navigate('/');
@@ -56,19 +57,9 @@ export function Sidebar() {
                 </div>
             </div>
 
-            {/* Workspaces */}
-            <div className="workspace-section">
-                <div className="workspace-label">Workspaces</div>
-                {WORKSPACES.map((ws) => (
-                    <div
-                        key={ws.id}
-                        className={`workspace-item ${activeWorkspace.id === ws.id ? 'active' : ''}`}
-                        onClick={() => handleSwitchWorkspace(ws)}
-                    >
-                        <div className={`workspace-avatar ${ws.color}`}>{ws.avatar}</div>
-                        <span className="workspace-name">{ws.displayName}</span>
-                    </div>
-                ))}
+            {/* Navigation Context */}
+            <div className="workspace-label" style={{ marginTop: '16px', padding: '0 16px' }}>
+                {isFamilia ? 'Acessos da Casa' : `Espaço de ${activeWorkspace.displayName}`}
             </div>
 
             {/* Navigation */}
@@ -87,8 +78,38 @@ export function Sidebar() {
                     ))}
             </nav>
 
-            {/* Footer - Chat + Ollama Status + Settings */}
-            <div className="sidebar-footer">
+            {/* Footer switcher and Chat */}
+            <div className="sidebar-footer" style={{ marginTop: 'auto' }}>
+
+                <div className="workspace-label" style={{ padding: '8px 16px 4px', borderTop: '1px solid var(--color-border-default)', paddingTop: '16px' }}>
+                    Alternar Perfil
+                </div>
+
+                <div
+                    className={`nav-item ${activeWorkspace.id === 'familia' ? 'active' : ''}`}
+                    onClick={() => handleSwitchWorkspace('familia')}
+                >
+                    <LayoutDashboard size={18} />
+                    <span>Visão Geral</span>
+                </div>
+
+                <div
+                    className={`nav-item ${activeWorkspace.id === 'isis' ? 'active' : ''}`}
+                    onClick={() => handleSwitchWorkspace('isis')}
+                >
+                    <div className="workspace-avatar isis" style={{ width: 18, height: 18, fontSize: 10, margin: 0 }}>I</div>
+                    <span>Perfil de Isis</span>
+                </div>
+
+                <div
+                    className={`nav-item ${activeWorkspace.id === 'angelica' ? 'active' : ''}`}
+                    onClick={() => handleSwitchWorkspace('angelica')}
+                >
+                    <div className="workspace-avatar angelica" style={{ width: 18, height: 18, fontSize: 10, margin: 0 }}>A</div>
+                    <span>Perfil de Angélica</span>
+                </div>
+
+                <div style={{ height: '16px' }}></div>
                 {/* Chat link */}
                 <div
                     className={`nav-item ${location.pathname === '/chat' ? 'active' : ''}`}

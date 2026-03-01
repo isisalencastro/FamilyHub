@@ -33,7 +33,7 @@ export function Dashboard() {
     const doneTasks = wsTasks.filter((t) => t.status === 'done');
 
     const greetingName =
-        activeWorkspace.id === 'familia' ? 'pessoal' : activeWorkspace.displayName;
+        activeWorkspace.id === 'familia' ? 'Visão Geral' : activeWorkspace.displayName;
 
     const hour = new Date().getHours();
     const greeting =
@@ -56,7 +56,7 @@ export function Dashboard() {
                         </h1>
                     </div>
                     <p className="page-subtitle">
-                        Aqui está o resumo do seu workspace. ✨
+                        {isFamilia ? 'Resumo de todas as tarefas e finanças da casa.' : 'Seu espaço pessoal de tarefas e anotações. ✨'}
                     </p>
                 </div>
 
