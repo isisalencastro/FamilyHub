@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
@@ -7,8 +8,60 @@ import { Projects } from '@/pages/Projects';
 import { Finance } from '@/pages/Finance';
 import { Docs } from '@/pages/Docs';
 import { SettingsPage } from '@/pages/Settings';
+import { useTaskStore } from '@/stores/taskStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { useFinanceStore } from '@/stores/financeStore';
+import { useDocStore } from '@/stores/docStore';
+import { useChatStore } from '@/stores/chatStore';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 function App() {
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const subscribeTasksRealtime = useTaskStore((s) => s.subscribeRealtime);
+
+  const fetchProjects = useProjectStore((s) => s.fetchProjects);
+  const subscribeProjectsRealtime = useProjectStore((s) => s.subscribeRealtime);
+
+  const fetchTransactions = useFinanceStore((s) => s.fetchTransactions);
+  const subscribeFinanceRealtime = useFinanceStore((s) => s.subscribeRealtime);
+
+  const fetchDocuments = useDocStore((s) => s.fetchDocuments);
+  const subscribeDocsRealtime = useDocStore((s) => s.subscribeRealtime);
+
+  const fetchConversations = useChatStore((s) => s.fetchConversations);
+  const fetchMemories = useChatStore((s) => s.fetchMemories);
+  const subscribeChatRealtime = useChatStore((s) => s.subscribeRealtime);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      console.warn('⚠️ Supabase não configurado — rodando em modo local (dados em memória).');
+      return;
+    }
+
+    // Fetch all data on startup
+    fetchTasks();
+    fetchProjects();
+    fetchTransactions();
+    fetchDocuments();
+    fetchConversations();
+    fetchMemories();
+
+    // Subscribe to realtime changes
+    const unsubTasks = subscribeTasksRealtime();
+    const unsubProjects = subscribeProjectsRealtime();
+    const unsubFinance = subscribeFinanceRealtime();
+    const unsubDocs = subscribeDocsRealtime();
+    const unsubChat = subscribeChatRealtime();
+
+    return () => {
+      unsubTasks();
+      unsubProjects();
+      unsubFinance();
+      unsubDocs();
+      unsubChat();
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <div className="app-layout">

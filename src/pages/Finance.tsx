@@ -36,7 +36,6 @@ export function Finance() {
         getTransactionsByWorkspace,
         getExpenseCategories,
         getIncomeCategories,
-        brenoAppUrl,
     } = useFinanceStore();
 
     const [showNew, setShowNew] = useState(false);
@@ -84,18 +83,6 @@ export function Finance() {
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {brenoAppUrl && (
-                            <a
-                                href={brenoAppUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-secondary"
-                                style={{ textDecoration: 'none' }}
-                            >
-                                <ExternalLink size={16} />
-                                App do Breno
-                            </a>
-                        )}
                         <button className="btn btn-primary" onClick={() => setShowNew(true)}>
                             <Plus size={16} />
                             Nova Transação

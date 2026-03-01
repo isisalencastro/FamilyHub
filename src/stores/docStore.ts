@@ -1,80 +1,6 @@
 import { create } from 'zustand';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { FamilyDocument, DocCategory } from '@/types';
-
-const DEMO_DOCS: FamilyDocument[] = [
-    {
-        id: '1',
-        name: 'RG - Isis',
-        category: 'identidade',
-        owner: 'Isis',
-        fileSize: '1.2 MB',
-        uploadedAt: '2026-01-15',
-        tags: ['documento pessoal'],
-    },
-    {
-        id: '2',
-        name: 'RG - Angélica',
-        category: 'identidade',
-        owner: 'Angélica',
-        fileSize: '980 KB',
-        uploadedAt: '2026-01-15',
-        tags: ['documento pessoal'],
-    },
-    {
-        id: '3',
-        name: 'CPF - Isis',
-        category: 'identidade',
-        owner: 'Isis',
-        fileSize: '450 KB',
-        uploadedAt: '2026-01-15',
-        tags: ['documento pessoal'],
-    },
-    {
-        id: '4',
-        name: 'Comprovante de Residência - Fev 2026',
-        category: 'comprovantes',
-        owner: 'Família',
-        fileSize: '2.1 MB',
-        uploadedAt: '2026-02-10',
-        tags: ['endereço', 'conta de luz'],
-    },
-    {
-        id: '5',
-        name: 'Contrato de Aluguel 2026',
-        category: 'contratos',
-        owner: 'Família',
-        fileSize: '3.5 MB',
-        uploadedAt: '2026-01-05',
-        tags: ['moradia', 'aluguel'],
-    },
-    {
-        id: '6',
-        name: 'Cartão de Vacinação - Isis',
-        category: 'saude',
-        owner: 'Isis',
-        fileSize: '1.8 MB',
-        uploadedAt: '2025-12-20',
-        tags: ['vacinação'],
-    },
-    {
-        id: '7',
-        name: 'Diploma Ensino Médio - Isis',
-        category: 'educacao',
-        owner: 'Isis',
-        fileSize: '2.3 MB',
-        uploadedAt: '2025-11-10',
-        tags: ['educação', 'diploma'],
-    },
-    {
-        id: '8',
-        name: 'Apólice de Seguro Auto',
-        category: 'outros',
-        owner: 'Família',
-        fileSize: '1.5 MB',
-        uploadedAt: '2026-02-01',
-        tags: ['seguro', 'carro'],
-    },
-];
 
 const DOC_CATEGORIES: { value: DocCategory; label: string; icon: string }[] = [
     { value: 'identidade', label: 'Identidade', icon: '🪪' },
@@ -88,29 +14,93 @@ const DOC_CATEGORIES: { value: DocCategory; label: string; icon: string }[] = [
 interface DocState {
     documents: FamilyDocument[];
     categories: typeof DOC_CATEGORIES;
-    addDocument: (doc: Omit<FamilyDocument, 'id' | 'uploadedAt'>) => void;
-    deleteDocument: (id: string) => void;
+    isLoading: boolean;
+    fetchDocuments: () => Promise<void>;
+    addDocument: (doc: Omit<FamilyDocument, 'id' | 'uploadedAt'>) => Promise<void>;
+    deleteDocument: (id: string) => Promise<void>;
     getDocsByCategory: (category: DocCategory) => FamilyDocument[];
     searchDocs: (query: string) => FamilyDocument[];
+    subscribeRealtime: () => () => void;
 }
 
 export const useDocStore = create<DocState>((set, get) => ({
-    documents: DEMO_DOCS,
+    documents: [],
     categories: DOC_CATEGORIES,
+    isLoading: false,
 
-    addDocument: (docData) => {
-        const doc: FamilyDocument = {
-            ...docData,
-            id: Date.now().toString(),
-            uploadedAt: new Date().toISOString().split('T')[0],
-        };
-        set((state) => ({ documents: [...state.documents, doc] }));
+    fetchDocuments: async () => {
+        if (!isSupabaseConfigured()) return;
+        set({ isLoading: true });
+
+        const { data, error } = await supabase
+            .from('documents')
+            .select('*')
+            .order('uploaded_at', { ascending: false });
+
+        if (!error && data) {
+            set({
+                documents: data.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    category: d.category as DocCategory,
+                    owner: d.owner,
+                    fileSize: d.file_size,
+                    filePath: d.file_path,
+                    uploadedAt: d.uploaded_at,
+                    tags: d.tags || [],
+                })),
+            });
+        }
+        set({ isLoading: false });
     },
 
-    deleteDocument: (id) => {
+    addDocument: async (docData) => {
+        if (!isSupabaseConfigured()) {
+            const doc: FamilyDocument = {
+                ...docData,
+                id: Date.now().toString(),
+                uploadedAt: new Date().toISOString().split('T')[0],
+            };
+            set((state) => ({ documents: [doc, ...state.documents] }));
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('documents')
+            .insert({
+                name: docData.name,
+                category: docData.category,
+                owner: docData.owner,
+                file_size: docData.fileSize || null,
+                file_path: docData.filePath || null,
+                tags: docData.tags || [],
+            })
+            .select()
+            .single();
+
+        if (!error && data) {
+            const doc: FamilyDocument = {
+                id: data.id,
+                name: data.name,
+                category: data.category,
+                owner: data.owner,
+                fileSize: data.file_size,
+                filePath: data.file_path,
+                uploadedAt: data.uploaded_at,
+                tags: data.tags || [],
+            };
+            set((state) => ({ documents: [doc, ...state.documents] }));
+        }
+    },
+
+    deleteDocument: async (id) => {
         set((state) => ({
             documents: state.documents.filter((d) => d.id !== id),
         }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('documents').delete().eq('id', id);
+        }
     },
 
     getDocsByCategory: (category) => {
@@ -125,5 +115,24 @@ export const useDocStore = create<DocState>((set, get) => ({
                 d.owner.toLowerCase().includes(q) ||
                 d.tags?.some((t) => t.toLowerCase().includes(q))
         );
+    },
+
+    subscribeRealtime: () => {
+        if (!isSupabaseConfigured()) return () => { };
+
+        const channel = supabase
+            .channel('documents-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'documents' },
+                () => {
+                    get().fetchDocuments();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     },
 }));

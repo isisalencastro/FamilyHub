@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OllamaMessage {
@@ -37,8 +36,13 @@ async fn chat_with_ollama(
     model: String,
     messages: Vec<OllamaMessage>,
     system_prompt: String,
+    ollama_host: Option<String>,
 ) -> Result<String, String> {
-    let client = reqwest::Client::new();
+    let host = ollama_host.unwrap_or_else(|| "localhost:11434".to_string());
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("Erro ao criar client HTTP: {}", e))?;
 
     let mut all_messages = vec![OllamaMessage {
         role: "system".to_string(),
@@ -53,11 +57,11 @@ async fn chat_with_ollama(
     };
 
     let response = client
-        .post("http://localhost:11434/api/chat")
+        .post(format!("http://{}/api/chat", host))
         .json(&request)
         .send()
         .await
-        .map_err(|e| format!("Erro ao conectar com Ollama: {}. Verifique se o Ollama está rodando.", e))?;
+        .map_err(|e| format!("Erro ao conectar com Ollama ({}): {}. Verifique se o Ollama está rodando.", host, e))?;
 
     let chat_response: OllamaChatResponse = response
         .json()
@@ -72,14 +76,18 @@ async fn chat_with_ollama(
 
 /// List available Ollama models
 #[tauri::command]
-async fn list_ollama_models() -> Result<Vec<String>, String> {
-    let client = reqwest::Client::new();
+async fn list_ollama_models(ollama_host: Option<String>) -> Result<Vec<String>, String> {
+    let host = ollama_host.unwrap_or_else(|| "localhost:11434".to_string());
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("Erro ao criar client: {}", e))?;
 
     let response = client
-        .get("http://localhost:11434/api/tags")
+        .get(format!("http://{}/api/tags", host))
         .send()
         .await
-        .map_err(|e| format!("Erro ao conectar com Ollama: {}", e))?;
+        .map_err(|e| format!("Erro ao conectar com Ollama ({}): {}", host, e))?;
 
     let models_response: OllamaModelsResponse = response
         .json()
@@ -95,9 +103,14 @@ async fn list_ollama_models() -> Result<Vec<String>, String> {
 
 /// Check if Ollama is running
 #[tauri::command]
-async fn check_ollama_status() -> Result<bool, String> {
-    let client = reqwest::Client::new();
-    match client.get("http://localhost:11434").send().await {
+async fn check_ollama_status(ollama_host: Option<String>) -> Result<bool, String> {
+    let host = ollama_host.unwrap_or_else(|| "localhost:11434".to_string());
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|_| "Erro".to_string())?;
+
+    match client.get(format!("http://{}", host)).send().await {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }

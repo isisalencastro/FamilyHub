@@ -1,121 +1,162 @@
 import { create } from 'zustand';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Task } from '@/types';
-
-// Demo tasks for each workspace
-const DEMO_TASKS: Task[] = [
-    // Isis tasks
-    {
-        id: '1',
-        workspaceId: 'isis',
-        title: 'Finalizar protótipo do Ring AI',
-        description: 'Implementar o chat com Ollama e integração de memória',
-        status: 'in_progress',
-        priority: 'high',
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: '2',
-        workspaceId: 'isis',
-        title: 'Estudar Rust para plugins do Tauri',
-        status: 'pending',
-        priority: 'medium',
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: '3',
-        workspaceId: 'isis',
-        title: 'Configurar CI/CD do projeto',
-        status: 'pending',
-        priority: 'low',
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: '4',
-        workspaceId: 'isis',
-        title: 'Revisar design do dashboard',
-        status: 'done',
-        priority: 'medium',
-        createdAt: new Date().toISOString(),
-    },
-    // Angelica tasks
-    {
-        id: '5',
-        workspaceId: 'angelica',
-        title: 'Organizar agenda da semana',
-        status: 'pending',
-        priority: 'high',
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: '6',
-        workspaceId: 'angelica',
-        title: 'Pesquisar receitas saudáveis',
-        status: 'in_progress',
-        priority: 'medium',
-        createdAt: new Date().toISOString(),
-    },
-    // Familia tasks
-    {
-        id: '7',
-        workspaceId: 'familia',
-        title: 'Planejar viagem de férias',
-        status: 'in_progress',
-        priority: 'high',
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: '8',
-        workspaceId: 'familia',
-        title: 'Fazer compras do mês',
-        status: 'pending',
-        priority: 'medium',
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: '9',
-        workspaceId: 'familia',
-        title: 'Revisar orçamento mensal',
-        status: 'pending',
-        priority: 'high',
-        createdAt: new Date().toISOString(),
-    },
-];
 
 interface TaskState {
     tasks: Task[];
-    addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
-    toggleTask: (taskId: string) => void;
-    deleteTask: (taskId: string) => void;
+    isLoading: boolean;
+    fetchTasks: () => Promise<void>;
+    addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
+    toggleTask: (id: string) => Promise<void>;
+    deleteTask: (id: string) => Promise<void>;
     getTasksByWorkspace: (workspaceId: string) => Task[];
+    subscribeRealtime: () => () => void;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
-    tasks: DEMO_TASKS,
+    tasks: [],
+    isLoading: false,
 
-    addTask: (taskData) => {
-        const task: Task = {
-            ...taskData,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
-        };
-        set((state) => ({ tasks: [...state.tasks, task] }));
+    fetchTasks: async () => {
+        if (!isSupabaseConfigured()) return;
+        set({ isLoading: true });
+        const { data, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            set({
+                tasks: data.map((t) => ({
+                    id: t.id,
+                    workspaceId: t.workspace_id,
+                    title: t.title,
+                    description: t.description,
+                    status: t.status as Task['status'],
+                    priority: t.priority as Task['priority'],
+                    dueDate: t.due_date,
+                    projectId: t.project_id,
+                    createdAt: t.created_at,
+                })),
+            });
+        }
+        set({ isLoading: false });
     },
 
-    toggleTask: (taskId) => {
+    addTask: async (taskData) => {
+        if (!isSupabaseConfigured()) {
+            // Fallback local
+            const task: Task = { ...taskData, id: Date.now().toString(), createdAt: new Date().toISOString() };
+            set((state) => ({ tasks: [task, ...state.tasks] }));
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('tasks')
+            .insert({
+                workspace_id: taskData.workspaceId,
+                title: taskData.title,
+                description: taskData.description || null,
+                status: taskData.status,
+                priority: taskData.priority,
+                due_date: taskData.dueDate || null,
+                project_id: taskData.projectId || null,
+            })
+            .select()
+            .single();
+
+        if (!error && data) {
+            const task: Task = {
+                id: data.id,
+                workspaceId: data.workspace_id,
+                title: data.title,
+                description: data.description,
+                status: data.status,
+                priority: data.priority,
+                dueDate: data.due_date,
+                projectId: data.project_id,
+                createdAt: data.created_at,
+            };
+            set((state) => ({ tasks: [task, ...state.tasks] }));
+        }
+    },
+
+    toggleTask: async (id) => {
+        const task = get().tasks.find((t) => t.id === id);
+        if (!task) return;
+        const newStatus = task.status === 'done' ? 'pending' : 'done';
+
+        // Optimistic update
         set((state) => ({
             tasks: state.tasks.map((t) =>
-                t.id === taskId
-                    ? { ...t, status: t.status === 'done' ? 'pending' : 'done' as Task['status'] }
-                    : t
+                t.id === id ? { ...t, status: newStatus } : t
             ),
         }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('tasks').update({ status: newStatus }).eq('id', id);
+        }
     },
 
-    deleteTask: (taskId) => {
-        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== taskId) }));
+    deleteTask: async (id) => {
+        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('tasks').delete().eq('id', id);
+        }
     },
 
     getTasksByWorkspace: (workspaceId) => {
         return get().tasks.filter((t) => t.workspaceId === workspaceId);
+    },
+
+    subscribeRealtime: () => {
+        if (!isSupabaseConfigured()) return () => { };
+
+        const channel = supabase
+            .channel('tasks-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'tasks' },
+                (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        const d = payload.new;
+                        const task: Task = {
+                            id: d.id,
+                            workspaceId: d.workspace_id,
+                            title: d.title,
+                            description: d.description,
+                            status: d.status,
+                            priority: d.priority,
+                            dueDate: d.due_date,
+                            projectId: d.project_id,
+                            createdAt: d.created_at,
+                        };
+                        const exists = get().tasks.some((t) => t.id === task.id);
+                        if (!exists) {
+                            set((state) => ({ tasks: [task, ...state.tasks] }));
+                        }
+                    } else if (payload.eventType === 'UPDATE') {
+                        const d = payload.new;
+                        set((state) => ({
+                            tasks: state.tasks.map((t) =>
+                                t.id === d.id
+                                    ? { ...t, status: d.status, title: d.title, priority: d.priority, description: d.description }
+                                    : t
+                            ),
+                        }));
+                    } else if (payload.eventType === 'DELETE') {
+                        const d = payload.old;
+                        set((state) => ({
+                            tasks: state.tasks.filter((t) => t.id !== d.id),
+                        }));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     },
 }));
