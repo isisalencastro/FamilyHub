@@ -17,6 +17,7 @@ import { useFinanceStore } from '@/stores/financeStore';
 import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
 import { useDocStore } from '@/stores/docStore';
 import { WeatherWidget } from '@/components/WeatherWidget';
+import { CalendarWidget } from '@/components/CalendarWidget';
 
 export function Dashboard() {
     const navigate = useNavigate();
@@ -178,6 +179,8 @@ export function Dashboard() {
                             )}
                         </div>
                     </div>
+                    {/* Calendar (Only for Family) */}
+                    {isFamilia && <CalendarWidget />}
                 </div>
 
                 {/* Quick Access Cards */}
