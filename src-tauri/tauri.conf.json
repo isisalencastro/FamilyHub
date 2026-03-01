@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Ring AI",
+  "productName": "Alenfinos Intranet",
   "version": "0.1.0",
   "identifier": "com.ringai.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Ring AI",
+        "title": "Alenfinos Intranet",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
