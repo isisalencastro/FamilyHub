@@ -14,6 +14,7 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useFinanceStore } from '@/stores/financeStore';
+import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
 import { useDocStore } from '@/stores/docStore';
 
 export function Dashboard() {
@@ -43,6 +44,15 @@ export function Dashboard() {
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
     const isFamilia = activeWorkspace.id === 'familia';
+    const famFinance = useFamilyFinanceStore();
+
+    // Calculate Dynamic Finance Summary for Family
+    const staticFamilyIncome = famFinance.renda.salarios.reduce((acc, c) => acc + c.value, 0) + famFinance.renda.vales.reduce((acc, c) => acc + c.value, 0);
+    const staticFamilyExpense = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0);
+
+    const displayIncome = isFamilia ? staticFamilyIncome : financeSummary.totalIncome;
+    const displayExpense = isFamilia ? staticFamilyExpense : financeSummary.totalExpense;
+    const displayBalance = isFamilia ? (staticFamilyIncome - staticFamilyExpense) : financeSummary.balance;
 
     return (
         <div className="main-content">
@@ -113,22 +123,22 @@ export function Dashboard() {
                         </div>
                         <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                             <div style={{ flex: 1, padding: '12px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-md)' }}>
-                                <div style={{ fontSize: '12px', color: 'var(--color-success)', marginBottom: '4px' }}>Receita</div>
-                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(financeSummary.totalIncome)}</div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-success)', marginBottom: '4px' }}>Receita {isFamilia ? '(Salários+Vales)' : ''}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(displayIncome)}</div>
                             </div>
                             <div style={{ flex: 1, padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)' }}>
-                                <div style={{ fontSize: '12px', color: 'var(--color-error)', marginBottom: '4px' }}>Despesa</div>
-                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(financeSummary.totalExpense)}</div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-error)', marginBottom: '4px' }}>Despesa {isFamilia ? '(Fixa)' : ''}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(displayExpense)}</div>
                             </div>
                         </div>
                         <div style={{ padding: '12px', background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Saldo</div>
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>{isFamilia ? 'Fluxo Livre Planejado' : 'Saldo'}</div>
                             <div style={{
                                 fontSize: '20px',
                                 fontWeight: 800,
-                                color: financeSummary.balance >= 0 ? 'var(--color-success)' : 'var(--color-error)',
+                                color: displayBalance >= 0 ? 'var(--color-success)' : 'var(--color-error)',
                             }}>
-                                {formatCurrency(financeSummary.balance)}
+                                {formatCurrency(displayBalance)}
                             </div>
                         </div>
                     </div>

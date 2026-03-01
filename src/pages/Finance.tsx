@@ -1,115 +1,183 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     TrendingUp,
     TrendingDown,
     Wallet,
-    Plus,
-    ExternalLink,
-    ArrowUpRight,
-    ArrowDownRight,
+    AlertTriangle,
+    CreditCard,
+    DollarSign,
+    CalendarClock,
+    CheckCircle2,
     Trash2,
+    Plus,
+    Bot
 } from 'lucide-react';
-import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { useFinanceStore } from '@/stores/financeStore';
-
-const CATEGORY_ICONS: Record<string, string> = {
-    'Salário': '💰',
-    'Freelance': '💻',
-    'Investimentos': '📈',
-    'Moradia': '🏠',
-    'Mercado': '🛒',
-    'Transporte': '🚗',
-    'Saúde': '🏥',
-    'Educação': '🎓',
-    'Lazer': '🎬',
-    'Serviços': '📡',
-    'Vestuário': '👕',
-    'Outros': '📦',
-};
+import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
+import { useChatStore } from '@/stores/chatStore';
 
 export function Finance() {
-    const { activeWorkspace } = useWorkspaceStore();
-    const {
-        addTransaction,
-        deleteTransaction,
-        getSummaryByWorkspace,
-        getTransactionsByWorkspace,
-        getExpenseCategories,
-        getIncomeCategories,
-    } = useFinanceStore();
-
-    const [showNew, setShowNew] = useState(false);
-    const [newType, setNewType] = useState<'income' | 'expense'>('expense');
-    const [newAmount, setNewAmount] = useState('');
-    const [newCategory, setNewCategory] = useState('');
-    const [newDesc, setNewDesc] = useState('');
-
-    const summary = getSummaryByWorkspace(activeWorkspace.id);
-    const transactions = getTransactionsByWorkspace(activeWorkspace.id);
-    const categories = newType === 'income' ? getIncomeCategories() : getExpenseCategories();
-
-    const handleCreate = () => {
-        const amount = parseFloat(newAmount);
-        if (!amount || !newCategory || !newDesc.trim()) return;
-        addTransaction({
-            workspaceId: activeWorkspace.id,
-            type: newType,
-            amount,
-            category: newCategory,
-            description: newDesc.trim(),
-            date: new Date().toISOString().split('T')[0],
-        });
-        setNewAmount('');
-        setNewCategory('');
-        setNewDesc('');
-        setShowNew(false);
-    };
+    const navigate = useNavigate();
+    const store = useFamilyFinanceStore();
+    const chatStore = useChatStore();
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+    const parseNumber = (str: string | null) => {
+        if (!str) return 0;
+        return parseFloat(str.replace(',', '.'));
+    };
+
+    const handleAddRenda = (type: 'salarios' | 'vales') => {
+        const name = window.prompt(`Adicionar ${type === 'salarios' ? 'Salário' : 'Vale'} (Nome da Pessoa):`);
+        if (!name) return;
+        const valStr = window.prompt(`Valor do ${type === 'salarios' ? 'Salário' : 'Vale'} (Ex: 2000.50):`);
+        const value = parseNumber(valStr);
+        if (value) store.addRenda(type, { name, value });
+    };
+
+    const handleAddFixo = () => {
+        const name = window.prompt('Nome da Conta Fixa Geral (ex: Luz, Água):');
+        if (!name) return;
+        const valStr = window.prompt('Valor mensal:');
+        const value = parseNumber(valStr);
+        if (value) store.addFixo({ name, value });
+    };
+
+    const handleAddParcelamento = () => {
+        const name = window.prompt('Nome do Parcelamento (ex: TV, Celular):');
+        if (!name) return;
+        const type = window.prompt('Detalhes do Parcelamento (ex: Parcelamento 3/6, Assinatura):') || '';
+        const valStr = window.prompt('Valor da Parcela Mensal:');
+        const value = parseNumber(valStr);
+        if (value) store.addParcelamento({ name, type, value });
+    };
+
+    const handleAddDivida = (person: 'isis' | 'angelica') => {
+        const name = window.prompt(`Nome da Dívida para ${person === 'isis' ? 'Isis' : 'Angélica'}:`);
+        if (!name) return;
+        const desc = window.prompt('Detalhes da Dívida (ex: 2x 700,00 ou só traços):') || '';
+        const valStr = window.prompt('Valor TOTAL restante da Dívida:');
+        const total = parseNumber(valStr);
+        if (total) {
+            person === 'isis'
+                ? store.addDividaIsis({ name, desc, total })
+                : store.addDividaAngelica({ name, desc, total });
+        }
+    };
+
+    const handleAddProblema = () => {
+        const name = window.prompt('Problema / Histórico Pós Data:');
+        if (!name) return;
+        const desc = window.prompt('Quando este problema acaba ou vai acontecer?:') || '';
+        const valStr = window.prompt('Valor total:');
+        const total = parseNumber(valStr);
+        if (total) store.addProblema({ name, desc, total });
+    };
+
+    const generateAIDiagnostic = () => {
+        if (chatStore.ollamaStatus !== 'online') {
+            alert("A Inteligência Artificial (Ring) está Offline. Certifique-se de que o Ollama está rodando no sistema!");
+            return;
+        }
+
+        const prompt = `Você atua como um educador financeiro empático e cirúrgico da Família Alenfinos. Baseado nos dados exatos atuais da família, apresente um diagnóstico claro sobre a saúde financeira. Faça críticas construtivas, aponte riscos e sugira estratégias de quitação de dívidas e redução do custo de vida. Não faça suposições externas.
+
+DADOS DA FAMÍLIA:
+Renda Total: ${formatCurrency(totalRenda)}
+Renda Composição: ${store.renda.salarios.map(s => s.name + ' - ' + formatCurrency(s.value)).join(', ')} | Vales: ${store.renda.vales.map(v => v.name + ' - ' + formatCurrency(v.value)).join(', ')}
+
+Despesas Fixas Mensais: ${formatCurrency(totalFixo)}
+(Líquido Livre sem Parcelamentos: ${formatCurrency(totalRenda - totalFixo)})
+
+Custos com Parcelamentos e Assinaturas (Cartões): ${formatCurrency(totalParcelamentos)}
+O que deve em parcelas detalhado: ${store.parcelamentos.map(p => p.name + ' (' + p.type + '). Valor mês: ' + formatCurrency(p.value)).join('; ')}
+
+Dívidas Totais Angélica: ${formatCurrency(totalDivAngelica)}
+Detalhe Dív. Angélica: ${store.dividasAngelica.map(d => d.name + ' => Total:' + formatCurrency(d.total)).join('; ')}
+
+Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}
+Detalhe Dív. Isis: ${store.dividasIsis.map(d => d.name + ' => Total:' + formatCurrency(d.total)).join('; ')}
+
+Histórico/Risco no radar da família: ${store.problemas.map(p => p.name + ' = ' + formatCurrency(p.total) + ' (' + p.desc + ')').join('; ')}
+
+Por favor, faça um balanço financeiro e crie um plano de contenção para esses riscos atuais. Quais devem ser os próximos passos dos meses seguintes da família?`;
+
+        chatStore.sendMessage('familia', prompt);
+        navigate('/chat');
+    };
+
+    const totalRenda = [...store.renda.salarios, ...store.renda.vales].reduce((a, b) => a + b.value, 0);
+    const totalFixo = store.fixoMensal.reduce((acc, curr) => acc + curr.value, 0);
+    const totalParcelamentos = store.parcelamentos.reduce((acc, curr) => acc + curr.value, 0);
+    const totalDivAngelica = store.dividasAngelica.reduce((acc, curr) => acc + curr.total, 0);
+    const totalDivIsis = store.dividasIsis.reduce((acc, curr) => acc + curr.total, 0);
 
     return (
         <div className="main-content">
             <div className="page-container">
                 {/* Header */}
-                <div
-                    className="page-header"
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-                >
+                <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                        <h1 className="page-title">Finanças</h1>
+                        <h1 className="page-title">Finanças da Casa</h1>
                         <p className="page-subtitle">
-                            Visão geral financeira · {activeWorkspace.displayName}
+                            Monitoramento em tempo real do ecossistema financeiro familiar.
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="btn btn-primary" onClick={() => setShowNew(true)}>
-                            <Plus size={16} />
-                            Nova Transação
-                        </button>
-                    </div>
+                    <button
+                        className="btn btn-primary"
+                        onClick={generateAIDiagnostic}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, #8b5cf6, #ec4899)' }}
+                    >
+                        <Bot size={18} /> Diagnóstico Inteligente (IA)
+                    </button>
                 </div>
 
                 {/* Summary Cards */}
                 <div className="dashboard-grid">
                     <div className="stat-card green">
-                        <div className="stat-icon green">
-                            <TrendingUp size={20} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                            <div className="stat-icon green">
+                                <TrendingUp size={20} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                <button className="btn btn-icon btn-ghost" style={{ padding: 4 }} onClick={() => handleAddRenda('salarios')} title="Adicionar Salário"><Plus size={14} /></button>
+                            </div>
                         </div>
                         <div className="stat-value" style={{ color: 'var(--color-success)' }}>
-                            {formatCurrency(summary.totalIncome)}
+                            {formatCurrency(totalRenda)}
                         </div>
-                        <div className="stat-label">Receitas</div>
+                        <div className="stat-label">Renda (Salários + Vales)</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 8 }}>
+                            <div>
+                                {store.renda.salarios.map(r => (
+                                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                                        <span>Salário {r.name}</span>
+                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                            {formatCurrency(r.value)}
+                                            <Trash2 size={10} style={{ cursor: 'pointer', color: 'var(--color-error)' }} onClick={() => store.removeRenda('salarios', r.id)} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                {store.renda.vales.map(r => (
+                                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                                        <span>Vale {r.name}</span>
+                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                            {formatCurrency(r.value)}
+                                            <Trash2 size={10} style={{ cursor: 'pointer', color: 'var(--color-error)' }} onClick={() => store.removeRenda('vales', r.id)} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
                         <div style={{
-                            content: '',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '3px',
+                            content: '', position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
                             borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
                             background: 'linear-gradient(90deg, var(--color-error), #dc2626)',
                         }} />
@@ -117,189 +185,196 @@ export function Finance() {
                             <TrendingDown size={20} />
                         </div>
                         <div className="stat-value" style={{ color: 'var(--color-error)' }}>
-                            {formatCurrency(summary.totalExpense)}
+                            {formatCurrency(totalFixo)}
                         </div>
-                        <div className="stat-label">Despesas</div>
+                        <div className="stat-label">Total Fixo Mensal (Débito)</div>
                     </div>
 
-                    <div className={`stat-card ${summary.balance >= 0 ? 'cyan' : 'amber'}`}>
-                        <div className={`stat-icon ${summary.balance >= 0 ? 'cyan' : 'amber'}`}>
+                    <div className={`stat-card ${(totalRenda - totalFixo) - totalParcelamentos >= 0 ? 'cyan' : 'amber'}`}>
+                        <div className={`stat-icon ${(totalRenda - totalFixo) - totalParcelamentos >= 0 ? 'cyan' : 'amber'}`}>
                             <Wallet size={20} />
                         </div>
                         <div
                             className="stat-value"
-                            style={{ color: summary.balance >= 0 ? 'var(--color-ws-familia)' : 'var(--color-warning)' }}
+                            style={{ color: (totalRenda - totalFixo) - totalParcelamentos >= 0 ? 'var(--color-ws-familia)' : 'var(--color-warning)' }}
                         >
-                            {formatCurrency(summary.balance)}
+                            {formatCurrency((totalRenda - totalFixo) - totalParcelamentos)}
                         </div>
-                        <div className="stat-label">Saldo</div>
+                        <div className="stat-label">Resto Livre no Mês</div>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>(Deduzidos contas fixas e parcelas)</span>
                     </div>
                 </div>
 
-                {/* Visual Bar */}
-                <div className="card" style={{ marginBottom: '20px' }}>
-                    <div className="card-header">
-                        <h2 className="card-title">Receita vs Despesa</h2>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px' }}>
-                                <span style={{ color: 'var(--color-success)' }}>Receita</span>
-                                <span style={{ color: 'var(--color-text-secondary)' }}>{formatCurrency(summary.totalIncome)}</span>
+                <div className="content-grid" style={{ marginTop: '20px' }}>
+                    {/* Fixo Mensal */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <DollarSign size={18} style={{ color: 'var(--color-error)' }} />
+                                <h2 className="card-title">Fixo Mensal (Débito)</h2>
                             </div>
-                            <div className="progress-bar" style={{ height: '10px' }}>
-                                <div
-                                    className="progress-fill green"
-                                    style={{
-                                        width: summary.totalIncome > 0
-                                            ? `${Math.min(100, (summary.totalIncome / Math.max(summary.totalIncome, summary.totalExpense)) * 100)}%`
-                                            : '0%',
-                                    }}
-                                />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: '13px', color: 'var(--color-text-tertiary)' }}>
+                                    {store.fixoMensal.length} contas
+                                </span>
+                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddFixo}>
+                                    <Plus size={14} /> Adicionar
+                                </button>
                             </div>
                         </div>
-                        <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px' }}>
-                                <span style={{ color: 'var(--color-error)' }}>Despesa</span>
-                                <span style={{ color: 'var(--color-text-secondary)' }}>{formatCurrency(summary.totalExpense)}</span>
-                            </div>
-                            <div className="progress-bar" style={{ height: '10px' }}>
-                                <div
-                                    style={{
-                                        height: '100%',
-                                        borderRadius: 'var(--radius-full)',
-                                        background: 'linear-gradient(90deg, var(--color-error), #f87171)',
-                                        transition: 'width var(--transition-slow)',
-                                        width: summary.totalExpense > 0
-                                            ? `${Math.min(100, (summary.totalExpense / Math.max(summary.totalIncome, summary.totalExpense)) * 100)}%`
-                                            : '0%',
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* New Transaction Form */}
-                {showNew && (
-                    <div className="card" style={{ marginBottom: '20px' }}>
-                        <div className="modal-title">Nova Transação</div>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                            <button
-                                className={`btn ${newType === 'income' ? 'btn-primary' : 'btn-secondary'}`}
-                                onClick={() => { setNewType('income'); setNewCategory(''); }}
-                                style={{ flex: 1, justifyContent: 'center' }}
-                            >
-                                <ArrowUpRight size={16} /> Receita
-                            </button>
-                            <button
-                                className={`btn ${newType === 'expense' ? 'btn-primary' : 'btn-secondary'}`}
-                                onClick={() => { setNewType('expense'); setNewCategory(''); }}
-                                style={{ flex: 1, justifyContent: 'center' }}
-                            >
-                                <ArrowDownRight size={16} /> Despesa
-                            </button>
-                        </div>
-                        <input
-                            className="input"
-                            type="number"
-                            placeholder="Valor (R$)..."
-                            value={newAmount}
-                            onChange={(e) => setNewAmount(e.target.value)}
-                            style={{ marginBottom: '12px' }}
-                        />
-                        <select
-                            className="input"
-                            value={newCategory}
-                            onChange={(e) => setNewCategory(e.target.value)}
-                            style={{ marginBottom: '12px' }}
-                        >
-                            <option value="">Selecione a categoria...</option>
-                            {categories.map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                        <input
-                            className="input"
-                            placeholder="Descrição..."
-                            value={newDesc}
-                            onChange={(e) => setNewDesc(e.target.value)}
-                        />
-                        <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={() => setShowNew(false)}>
-                                Cancelar
-                            </button>
-                            <button className="btn btn-primary" onClick={handleCreate}>
-                                Adicionar
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Transactions List */}
-                <div className="card">
-                    <div className="card-header">
-                        <h2 className="card-title">Transações recentes</h2>
-                        <span style={{ fontSize: '13px', color: 'var(--color-text-tertiary)' }}>
-                            {transactions.length} transaç{transactions.length !== 1 ? 'ões' : 'ão'}
-                        </span>
-                    </div>
-                    <div className="task-list">
-                        {transactions.map((tx) => (
-                            <div key={tx.id} className="task-item" style={{ justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                                    <div
-                                        style={{
-                                            width: '36px',
-                                            height: '36px',
-                                            borderRadius: 'var(--radius-md)',
-                                            background: tx.type === 'income'
-                                                ? 'rgba(34, 197, 94, 0.15)'
-                                                : 'rgba(239, 68, 68, 0.15)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '18px',
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        {CATEGORY_ICONS[tx.category] || '📦'}
+                        <div className="task-list">
+                            {store.fixoMensal.map((item) => (
+                                <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleFixoPaid(item.id)}>
+                                        {item.paid ? (
+                                            <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} />
+                                        ) : (
+                                            <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />
+                                        )}
+                                        <span style={{ fontSize: '14px', fontWeight: item.paid ? 400 : 500, color: item.paid ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)' }}>
+                                            {item.name}
+                                        </span>
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{tx.description}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>
-                                            {tx.category} · {new Date(tx.date).toLocaleDateString('pt-BR')}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(item.value)}</span>
+                                        <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeFixo(item.id)}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Crédito e Parcelamentos */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <CreditCard size={18} style={{ color: 'var(--color-warning)' }} />
+                                <h2 className="card-title">Crédito e Faturas</h2>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: '14px', color: 'var(--color-warning)', fontWeight: 700 }}>
+                                    {formatCurrency(totalParcelamentos)}/mês
+                                </span>
+                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddParcelamento}>
+                                    <Plus size={14} /> Adicionar
+                                </button>
+                            </div>
+                        </div>
+                        <div className="task-list">
+                            {store.parcelamentos.map((item) => (
+                                <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
+                                    <div>
+                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{item.name}</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>{item.type}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(item.value)}</span>
+                                        <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeParcelamento(item.id)}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                            {store.parcelamentos.length === 0 && <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-tertiary)' }}>Nenhum gasto de crédito.</div>}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Dívidas e Problemas (Full Width) */}
+                <div style={{ marginTop: '20px' }}>
+                    <div className="card">
+                        <div className="card-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <AlertTriangle size={18} style={{ color: 'var(--color-error)' }} />
+                                <h2 className="card-title">Dívidas e Passivos Congelados</h2>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            {/* Dívidas Angélica */}
+                            <div>
+                                <h3 style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>Dívidas Ocultas (Angélica)</span>
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        <span style={{ color: 'white', fontWeight: 600 }}>{formatCurrency(totalDivAngelica)}</span>
+                                        <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => handleAddDivida('angelica')}><Plus size={12} /></button>
+                                    </div>
+                                </h3>
+                                <div className="task-list">
+                                    {store.dividasAngelica.map((item) => (
+                                        <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '8px 12px' }}>
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: 500 }}>{item.name}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{item.desc}</div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 600 }}>{formatCurrency(item.total)}</span>
+                                                <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaAngelica(item.id)}><Trash2 size={12} /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {store.dividasAngelica.length === 0 && <div style={{ fontSize: 12, padding: 8, color: 'var(--color-text-tertiary)' }}>Sem dividas.</div>}
+                                </div>
+                            </div>
+
+                            {/* Dívidas Isis */}
+                            <div>
+                                <h3 style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>Dívidas Ocultas (Isis)</span>
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        <span style={{ color: 'white', fontWeight: 600 }}>{formatCurrency(totalDivIsis)}</span>
+                                        <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => handleAddDivida('isis')}><Plus size={12} /></button>
+                                    </div>
+                                </h3>
+                                <div className="task-list">
+                                    {store.dividasIsis.map((item) => (
+                                        <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '8px 12px' }}>
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: 500 }}>{item.name}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{item.desc}</div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 600 }}>{formatCurrency(item.total)}</span>
+                                                <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaIsis(item.id)}><Trash2 size={12} /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {store.dividasIsis.length === 0 && <div style={{ fontSize: 12, padding: 8, color: 'var(--color-text-tertiary)' }}>Sem dividas.</div>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Problemas / Histórico Futuro */}
+                        <div style={{ marginTop: '20px', borderTop: '1px solid var(--color-border-default)', paddingTop: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <h3 style={{ fontSize: '14px', color: 'var(--color-warning)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <CalendarClock size={14} /> Riscos e Avisos (Em conta e Descontos folha)
+                                </h3>
+                                <button className="btn btn-ghost btn-sm" onClick={handleAddProblema}><Plus size={14} /> Adicionar Aviso</button>
+                            </div>
+
+                            <div className="task-list">
+                                {store.problemas.map((item) => (
+                                    <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.05)' }}>
+                                        <div>
+                                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-error)' }}>{item.name}</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{item.desc}</div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-error)' }}>{formatCurrency(item.total)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeProblema(item.id)}><Trash2 size={14} /></button>
                                         </div>
                                     </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span
-                                        style={{
-                                            fontSize: '14px',
-                                            fontWeight: 700,
-                                            color: tx.type === 'income' ? 'var(--color-success)' : 'var(--color-error)',
-                                        }}
-                                    >
-                                        {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
-                                    </span>
-                                    <button
-                                        className="btn btn-ghost"
-                                        onClick={() => deleteTransaction(tx.id)}
-                                        style={{ color: 'var(--color-text-tertiary)' }}
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
+                                ))}
+                                {store.problemas.length === 0 && <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-tertiary)' }}>Nada no radar! 🙏</div>}
                             </div>
-                        ))}
-                        {transactions.length === 0 && (
-                            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-text-tertiary)' }}>
-                                <Wallet size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
-                                <p style={{ fontSize: '14px' }}>Nenhuma transação registrada.</p>
-                            </div>
-                        )}
+                        </div>
+
                     </div>
                 </div>
+                <div style={{ padding: 20 }}></div>
             </div>
         </div>
     );

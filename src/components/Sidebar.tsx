@@ -39,7 +39,7 @@ export function Sidebar() {
 
     const navItems = [
         { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-        { path: '/finance', icon: Wallet, label: 'Finanças', show: true },
+        { path: '/finance', icon: Wallet, label: 'Finanças', show: isFamilia },
         { path: '/tasks', icon: CheckSquare, label: 'Tarefas', show: true },
         { path: '/projects', icon: FolderKanban, label: 'Projetos', show: true },
         { path: '/docs', icon: FileText, label: 'Documentos', show: isFamilia },
