@@ -11,9 +11,10 @@ import {
     FolderOpen,
     Upload,
     ExternalLink,
-    File,
     Image,
     FileSpreadsheet,
+    ScanText,
+    File as FileIcon
 } from 'lucide-react';
 import { useDocStore } from '@/stores/docStore';
 import type { DocCategory } from '@/types';
@@ -42,7 +43,7 @@ function getFileIcon(fileName: string) {
     if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) {
         return <FileText size={20} />;
     }
-    return <File size={20} />;
+    return <FileIcon size={20} />;
 }
 
 function formatBytes(bytes: number): string {
@@ -194,10 +195,16 @@ export function Docs() {
                             {documents.length} documento{documents.length !== 1 ? 's' : ''} da família
                         </p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowNew(true)}>
-                        <Plus size={16} />
-                        Novo Documento
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(90deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1))', border: '1px solid rgba(236, 72, 153, 0.2)' }} onClick={() => alert('Em breve: Conexão com Google Cloud Vision para ler arquivos.')}>
+                            <ScanText size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                            <span style={{ color: 'var(--color-accent-primary)', fontWeight: 600 }}>Escanear com IA</span>
+                        </button>
+                        <button className="btn btn-primary" onClick={() => setShowNew(true)}>
+                            <Plus size={16} />
+                            Novo Documento
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search */}

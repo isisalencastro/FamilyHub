@@ -16,6 +16,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
 import { useDocStore } from '@/stores/docStore';
+import { WeatherWidget } from '@/components/WeatherWidget';
 
 export function Dashboard() {
     const navigate = useNavigate();
@@ -58,16 +59,19 @@ export function Dashboard() {
         <div className="main-content">
             <div className="page-container">
                 {/* Header */}
-                <div className="page-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                        <Sparkles size={28} style={{ color: 'var(--color-accent-primary)' }} />
-                        <h1 className="page-title">
-                            {greeting}, {greetingName}!
-                        </h1>
+                <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                            <Sparkles size={28} style={{ color: 'var(--color-accent-primary)' }} />
+                            <h1 className="page-title">
+                                {greeting}, {greetingName}!
+                            </h1>
+                        </div>
+                        <p className="page-subtitle">
+                            {isFamilia ? 'Resumo de todas as tarefas e finanças da casa.' : 'Seu espaço pessoal de tarefas e anotações. ✨'}
+                        </p>
                     </div>
-                    <p className="page-subtitle">
-                        {isFamilia ? 'Resumo de todas as tarefas e finanças da casa.' : 'Seu espaço pessoal de tarefas e anotações. ✨'}
-                    </p>
+                    {isFamilia && <WeatherWidget />}
                 </div>
 
                 {/* Stats Grid */}

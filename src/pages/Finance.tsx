@@ -114,6 +114,54 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
     const totalDivAngelica = store.dividasAngelica.reduce((acc, curr) => acc + curr.total, 0);
     const totalDivIsis = store.dividasIsis.reduce((acc, curr) => acc + curr.total, 0);
 
+    // Lógica do Mês Atual
+    const today = new Date();
+    const currentMonthNum = today.getMonth() + 1;
+    const currentMonthStr = currentMonthNum.toString().padStart(2, '0');
+    const monthNames = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    const fullMonthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const currentMonthName = monthNames[today.getMonth()];
+    const currentYearStr = today.getFullYear().toString();
+    const currentDateDisplay = `${today.getDate()} de ${fullMonthNames[today.getMonth()]} de ${today.getFullYear()}`;
+
+    let totalCreditoRealMes = 0;
+    let outrosDescontosMes = 0;
+
+    store.problemas.forEach(p => {
+        const descUpper = p.desc.toUpperCase();
+        let cost = 0;
+
+        const monthlyMatch = p.desc.match(/(\d+(?:[.,]\d+)?)\/m[êe]s/i);
+        if (monthlyMatch) {
+            cost = parseFloat(monthlyMatch[1].replace(',', '.'));
+        } else {
+            const hasCurrentMonth = descUpper.includes(`MÊS ${currentMonthStr}`) || descUpper.includes(`MES ${currentMonthStr}`) || descUpper.includes(currentMonthName);
+            const hasCurrentYear = descUpper.includes(currentYearStr);
+            if (hasCurrentMonth && hasCurrentYear) {
+                cost = p.total;
+            }
+        }
+
+        if (cost > 0) {
+            if (p.name.toLowerCase().includes('crédito') || p.name.toLowerCase().includes('credito') || p.name.toLowerCase().includes('fatura')) {
+                totalCreditoRealMes += cost;
+            } else {
+                outrosDescontosMes += cost;
+            }
+        }
+    });
+
+    const theoreticalCreditItem = store.fixoMensal.find(f => f.name.toLowerCase().includes('crédito') || f.name.toLowerCase().includes('credito'));
+    const theoreticalCredito = theoreticalCreditItem ? theoreticalCreditItem.value : 0;
+
+    let ajusteCredito = 0;
+    if (totalCreditoRealMes > 0) {
+        ajusteCredito = totalCreditoRealMes - theoreticalCredito;
+    }
+
+    const saldoLiquidoTeorico = (totalRenda - totalFixo) - totalParcelamentos;
+    const saldoRealDoMes = saldoLiquidoTeorico - (ajusteCredito > 0 ? ajusteCredito : 0) - outrosDescontosMes;
+
     return (
         <div className="main-content">
             <div className="page-container">
@@ -135,7 +183,7 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                 </div>
 
                 {/* Summary Cards */}
-                <div className="dashboard-grid">
+                <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
                     <div className="stat-card green">
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                             <div className="stat-icon green">
@@ -200,8 +248,28 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                         >
                             {formatCurrency((totalRenda - totalFixo) - totalParcelamentos)}
                         </div>
-                        <div className="stat-label">Resto Livre no Mês</div>
-                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>(Deduzidos contas fixas e parcelas)</span>
+                        <div className="stat-label">Teórico Livre</div>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>(Deduzidos fixos e parcelas base)</span>
+                    </div>
+
+                    <div className={`stat-card ${saldoRealDoMes >= 0 ? 'green' : 'red'}`} style={{ border: saldoRealDoMes < 0 ? '1px solid var(--color-error)' : '1px solid var(--color-success)', background: saldoRealDoMes < 0 ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div className={`stat-icon ${saldoRealDoMes >= 0 ? 'green' : 'red'}`}>
+                                <AlertTriangle size={20} />
+                            </div>
+                            <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4, color: 'var(--color-text-secondary)' }}>
+                                {currentDateDisplay}
+                            </span>
+                        </div>
+                        <div className="stat-value" style={{ color: saldoRealDoMes >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
+                            {formatCurrency(saldoRealDoMes)}
+                        </div>
+                        <div className="stat-label" style={{ fontWeight: 600 }}>Situação Real ({fullMonthNames[today.getMonth()]})</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
+                            {ajusteCredito > 0 && <div>▲ Ajuste Cartões: -{formatCurrency(ajusteCredito)}</div>}
+                            {outrosDescontosMes > 0 && <div>▲ Descontos Folha: -{formatCurrency(outrosDescontosMes)}</div>}
+                            {saldoRealDoMes < 0 && <span style={{ color: 'var(--color-error)', fontWeight: 600, marginTop: 4, display: 'block' }}>Valor Negativado!</span>}
+                        </div>
                     </div>
                 </div>
 

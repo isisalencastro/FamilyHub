@@ -8,6 +8,7 @@ import {
     Settings,
     Wallet,
     FileText,
+    Link as LinkIcon
 } from 'lucide-react';
 import { useWorkspaceStore, WORKSPACES } from '@/stores/workspaceStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -43,6 +44,7 @@ export function Sidebar() {
         { path: '/tasks', icon: CheckSquare, label: 'Tarefas', show: true },
         { path: '/projects', icon: FolderKanban, label: 'Projetos', show: true },
         { path: '/docs', icon: FileText, label: 'Documentos', show: isFamilia },
+        { path: '/integrations', icon: LinkIcon, label: 'Integrações', show: isFamilia },
     ];
 
     return (

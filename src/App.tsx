@@ -7,6 +7,7 @@ import { Tasks } from '@/pages/Tasks';
 import { Projects } from '@/pages/Projects';
 import { Finance } from '@/pages/Finance';
 import { Docs } from '@/pages/Docs';
+import { Integrations } from '@/pages/Integrations';
 import { SettingsPage } from '@/pages/Settings';
 import { useTaskStore } from '@/stores/taskStore';
 import { useProjectStore } from '@/stores/projectStore';
@@ -73,6 +74,7 @@ function App() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/finance" element={<Finance />} />
           <Route path="/docs" element={<Docs />} />
+          <Route path="/integrations" element={<Integrations />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>
