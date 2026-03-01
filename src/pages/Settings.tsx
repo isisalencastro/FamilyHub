@@ -1,21 +1,34 @@
 import { useEffect, useState } from 'react';
-import { Bot, RefreshCw, Cpu, Wifi, Server, Database } from 'lucide-react';
+import { Bot, RefreshCw, Cpu, Wifi, Server, Database, UserCircle } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 export function SettingsPage() {
+    const { activeWorkspace } = useWorkspaceStore();
     const {
         ollamaStatus,
         ollamaModel,
         ollamaHost,
         availableModels,
+        customInstructions,
         checkOllamaStatus,
         loadModels,
         setOllamaModel,
         setOllamaHost,
+        setCustomInstruction,
     } = useChatStore();
 
     const [hostInput, setHostInput] = useState(ollamaHost);
+    const [instructionInput, setInstructionInput] = useState(customInstructions[activeWorkspace.id] || '');
+
+    useEffect(() => {
+        setInstructionInput(customInstructions[activeWorkspace.id] || '');
+    }, [activeWorkspace.id, customInstructions]);
+
+    const handleSaveInstruction = () => {
+        setCustomInstruction(activeWorkspace.id, instructionInput);
+    };
 
     useEffect(() => {
         checkOllamaStatus();
@@ -262,6 +275,36 @@ export function SettingsPage() {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* Profile Instructions */}
+                <div className="card" style={{ marginBottom: '20px' }}>
+                    <div className="card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="stat-icon" style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#ec4899' }}>
+                                <UserCircle size={20} />
+                            </div>
+                            <h2 className="card-title">Instruções do Perfil ({activeWorkspace.displayName})</h2>
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '16px' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>
+                            Forneça regras, contexto e formato de resposta para a Ring agir ao conversar no perfil <strong>{activeWorkspace.displayName}</strong>. Funciona como as custom instructions/projetos de outras IAs.
+                        </p>
+                        <textarea
+                            className="input"
+                            value={instructionInput}
+                            onChange={(e) => setInstructionInput(e.target.value)}
+                            placeholder="Ex: Você é um assistente focado em produtividade. Responda em marcadores curtos e objetivos. Me chame de chefa..."
+                            style={{ minHeight: '120px', resize: 'vertical', width: '100%', marginBottom: '12px' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-primary" onClick={handleSaveInstruction}>
+                                Salvar Instruções
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Models Info */}

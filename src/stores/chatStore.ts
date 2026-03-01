@@ -18,6 +18,7 @@ interface ChatState {
     ollamaHost: string;
     availableModels: string[];
     memories: Memory[];
+    customInstructions: Record<string, string>;
 
     // Actions
     sendMessage: (workspaceId: string, content: string) => Promise<void>;
@@ -25,6 +26,8 @@ interface ChatState {
     setActiveConversation: (id: string | null) => void;
     setOllamaModel: (model: string) => void;
     setOllamaHost: (host: string) => void;
+    setCustomInstruction: (workspaceId: string, instruction: string) => void;
+    getCustomInstruction: (workspaceId: string) => string;
     checkOllamaStatus: () => Promise<void>;
     loadModels: () => Promise<void>;
     getConversationsByWorkspace: (workspaceId: string) => Conversation[];
@@ -32,6 +35,14 @@ interface ChatState {
     fetchMemories: () => Promise<void>;
     subscribeRealtime: () => () => void;
 }
+
+const loadCustomInstructions = (): Record<string, string> => {
+    try {
+        return JSON.parse(localStorage.getItem('ring_custom_instructions') || '{}');
+    } catch {
+        return {};
+    }
+};
 
 export const useChatStore = create<ChatState>((set, get) => ({
     conversations: {},
@@ -42,6 +53,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
     ollamaHost: 'localhost:11434',
     availableModels: [],
     memories: [],
+    customInstructions: loadCustomInstructions(),
+
+    setCustomInstruction: (workspaceId: string, instruction: string) => {
+        set((state) => {
+            const newInstructions = { ...state.customInstructions, [workspaceId]: instruction };
+            localStorage.setItem('ring_custom_instructions', JSON.stringify(newInstructions));
+            return { customInstructions: newInstructions };
+        });
+    },
+
+    getCustomInstruction: (workspaceId: string) => {
+        return get().customInstructions[workspaceId] || '';
+    },
 
     fetchConversations: async () => {
         if (!isSupabaseConfigured()) return;
@@ -215,8 +239,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 .map((m) => m.content)
                 .join('\n');
 
+            const customInstruction = get().getCustomInstruction(workspaceId);
+
             const systemPrompt =
                 SYSTEM_PROMPTS[workspaceId] +
+                (customInstruction ? `\n\nInstruções Personalizadas do Perfil:\n${customInstruction}` : '') +
                 (memories ? `\n\nMemórias relevantes:\n${memories}` : '');
 
             let responseContent: string;
