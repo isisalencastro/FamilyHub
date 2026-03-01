@@ -1,30 +1,36 @@
 import {
     CheckSquare,
     FolderKanban,
-    MessageCircle,
+    Wallet,
     TrendingUp,
-    Clock,
     Sparkles,
     ArrowRight,
     Check,
+    FileText,
+    MessageCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useFinanceStore } from '@/stores/financeStore';
+import { useDocStore } from '@/stores/docStore';
 
 export function Dashboard() {
     const navigate = useNavigate();
     const { activeWorkspace } = useWorkspaceStore();
     const { tasks, toggleTask } = useTaskStore();
     const { projects } = useProjectStore();
+    const { getSummaryByWorkspace, getTransactionsByWorkspace } = useFinanceStore();
+    const { documents } = useDocStore();
 
     const wsTasks = tasks.filter((t) => t.workspaceId === activeWorkspace.id);
     const wsProjects = projects.filter((p) => p.workspaceId === activeWorkspace.id);
+    const financeSummary = getSummaryByWorkspace(activeWorkspace.id);
+    const recentTransactions = getTransactionsByWorkspace(activeWorkspace.id).slice(0, 3);
 
     const pendingTasks = wsTasks.filter((t) => t.status !== 'done');
     const doneTasks = wsTasks.filter((t) => t.status === 'done');
-    const inProgressTasks = wsTasks.filter((t) => t.status === 'in_progress');
 
     const greetingName =
         activeWorkspace.id === 'familia' ? 'pessoal' : activeWorkspace.displayName;
@@ -32,6 +38,11 @@ export function Dashboard() {
     const hour = new Date().getHours();
     const greeting =
         hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+
+    const formatCurrency = (value: number) =>
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+    const isFamilia = activeWorkspace.id === 'familia';
 
     return (
         <div className="main-content">
@@ -45,12 +56,12 @@ export function Dashboard() {
                         </h1>
                     </div>
                     <p className="page-subtitle">
-                        Aqui está o resumo do seu workspace. A Ring está pronta para ajudar! ✨
+                        Aqui está o resumo do seu workspace. ✨
                     </p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="dashboard-grid">
+                <div className="dashboard-grid" style={{ gridTemplateColumns: isFamilia ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)' }}>
                     <div className="stat-card purple">
                         <div className="stat-icon purple">
                             <CheckSquare size={20} />
@@ -74,10 +85,54 @@ export function Dashboard() {
                         <div className="stat-value">{wsProjects.length}</div>
                         <div className="stat-label">Projetos ativos</div>
                     </div>
+
+                    {isFamilia && (
+                        <div className="stat-card cyan">
+                            <div className="stat-icon cyan">
+                                <FileText size={20} />
+                            </div>
+                            <div className="stat-value">{documents.length}</div>
+                            <div className="stat-label">Documentos</div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Content Grid */}
                 <div className="content-grid">
+                    {/* Finance Summary */}
+                    <div className="card">
+                        <div className="card-header">
+                            <h2 className="card-title">Finanças</h2>
+                            <button
+                                className="btn btn-ghost"
+                                onClick={() => navigate('/finance')}
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+                            >
+                                Ver tudo <ArrowRight size={14} />
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                            <div style={{ flex: 1, padding: '12px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-md)' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--color-success)', marginBottom: '4px' }}>Receita</div>
+                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(financeSummary.totalIncome)}</div>
+                            </div>
+                            <div style={{ flex: 1, padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--color-error)', marginBottom: '4px' }}>Despesa</div>
+                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(financeSummary.totalExpense)}</div>
+                            </div>
+                        </div>
+                        <div style={{ padding: '12px', background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Saldo</div>
+                            <div style={{
+                                fontSize: '20px',
+                                fontWeight: 800,
+                                color: financeSummary.balance >= 0 ? 'var(--color-success)' : 'var(--color-error)',
+                            }}>
+                                {formatCurrency(financeSummary.balance)}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Tasks */}
                     <div className="card">
                         <div className="card-header">
@@ -109,94 +164,90 @@ export function Dashboard() {
                             )}
                         </div>
                     </div>
-
-                    {/* Projects */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h2 className="card-title">Projetos</h2>
-                            <button
-                                className="btn btn-ghost"
-                                onClick={() => navigate('/projects')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
-                            >
-                                Ver todos <ArrowRight size={14} />
-                            </button>
-                        </div>
-                        <div>
-                            {wsProjects.map((project) => {
-                                const progress =
-                                    project.taskCount > 0
-                                        ? Math.round((project.completedTasks / project.taskCount) * 100)
-                                        : 0;
-                                return (
-                                    <div key={project.id} className="project-item">
-                                        <div
-                                            className="project-dot"
-                                            style={{ background: project.color }}
-                                        />
-                                        <div className="project-info">
-                                            <div className="project-name">{project.name}</div>
-                                            <div className="project-tasks">
-                                                {project.completedTasks}/{project.taskCount} tarefas · {progress}%
-                                            </div>
-                                            <div className="progress-bar" style={{ marginTop: '8px' }}>
-                                                <div
-                                                    className="progress-fill purple"
-                                                    style={{ width: `${progress}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {wsProjects.length === 0 && (
-                                <p style={{ color: 'var(--color-text-tertiary)', fontSize: '14px', padding: '12px' }}>
-                                    Nenhum projeto ainda.
-                                </p>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
-                {/* Quick Chat CTA */}
-                <div
-                    className="card"
-                    style={{
-                        marginTop: '20px',
-                        cursor: 'pointer',
-                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(109, 40, 217, 0.05))',
-                        borderColor: 'var(--color-border-accent)',
-                    }}
-                    onClick={() => navigate('/chat')}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: 'var(--radius-md)',
-                                background: 'linear-gradient(135deg, var(--color-accent-primary), #6d28d9)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: 'var(--shadow-glow)',
-                            }}
-                        >
-                            <MessageCircle size={24} color="white" />
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
-                                Conversar com a Ring
+                {/* Quick Access Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: isFamilia ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '12px', marginTop: '20px' }}>
+                    <div
+                        className="card"
+                        style={{
+                            cursor: 'pointer',
+                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(109, 40, 217, 0.04))',
+                            borderColor: 'var(--color-border-default)',
+                        }}
+                        onClick={() => navigate('/projects')}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                                background: 'var(--color-accent-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <FolderKanban size={20} style={{ color: 'var(--color-accent-primary)' }} />
                             </div>
-                            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                                Peça ajuda, organize suas ideias ou tire dúvidas com sua assistente pessoal
+                            <div>
+                                <div style={{ fontSize: '14px', fontWeight: 600 }}>Projetos</div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                    {wsProjects.length} projeto{wsProjects.length !== 1 ? 's' : ''} · Board Kanban
+                                </div>
                             </div>
+                            <ArrowRight size={16} style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
                         </div>
-                        <ArrowRight
-                            size={20}
-                            style={{ marginLeft: 'auto', color: 'var(--color-accent-secondary)' }}
-                        />
                     </div>
+
+                    <div
+                        className="card"
+                        style={{
+                            cursor: 'pointer',
+                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(109, 40, 217, 0.04))',
+                            borderColor: 'var(--color-border-default)',
+                        }}
+                        onClick={() => navigate('/chat')}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                                background: 'linear-gradient(135deg, var(--color-accent-primary), #6d28d9)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <MessageCircle size={20} color="white" />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '14px', fontWeight: 600 }}>Chat com Ring</div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                    Sua assistente pessoal
+                                </div>
+                            </div>
+                            <ArrowRight size={16} style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                        </div>
+                    </div>
+
+                    {isFamilia && (
+                        <div
+                            className="card"
+                            style={{
+                                cursor: 'pointer',
+                                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(8, 145, 178, 0.04))',
+                                borderColor: 'var(--color-border-default)',
+                            }}
+                            onClick={() => navigate('/docs')}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                                    background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <FileText size={20} style={{ color: 'var(--color-ws-familia)' }} />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '14px', fontWeight: 600 }}>Documentos</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                        {documents.length} documento{documents.length !== 1 ? 's' : ''} da família
+                                    </div>
+                                </div>
+                                <ArrowRight size={16} style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

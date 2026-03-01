@@ -25,6 +25,14 @@ export function Chat() {
         ? conversations[activeConversationId]
         : null;
 
+    // Reset active conversation when workspace changes
+    useEffect(() => {
+        const currentConv = activeConversationId ? conversations[activeConversationId] : null;
+        if (currentConv && currentConv.workspaceId !== activeWorkspace.id) {
+            setActiveConversation(null);
+        }
+    }, [activeWorkspace.id]);
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [activeConversation?.messages?.length, isLoading]);
@@ -60,7 +68,7 @@ export function Chat() {
                         <Bot size={22} color="white" />
                     </div>
                     <div>
-                        <div className="chat-title">Ring AI</div>
+                        <div className="chat-title">Ring</div>
                         <div className="chat-model">
                             {ollamaStatus === 'online' ? `Modelo: ${ollamaModel}` : 'Modo offline'}
                         </div>

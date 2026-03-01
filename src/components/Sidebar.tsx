@@ -6,16 +6,27 @@ import {
     FolderKanban,
     Bot,
     Settings,
+    Wallet,
+    FileText,
 } from 'lucide-react';
 import { useWorkspaceStore, WORKSPACES } from '@/stores/workspaceStore';
 import { useChatStore } from '@/stores/chatStore';
+import type { Workspace } from '@/types';
 import { useEffect } from 'react';
 
 export function Sidebar() {
     const location = useLocation();
     const navigate = useNavigate();
     const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
-    const { ollamaStatus, checkOllamaStatus } = useChatStore();
+    const { ollamaStatus, checkOllamaStatus, setActiveConversation } = useChatStore();
+
+    const handleSwitchWorkspace = (ws: Workspace) => {
+        if (ws.id !== activeWorkspace.id) {
+            setActiveWorkspace(ws);
+            setActiveConversation(null);
+            navigate('/');
+        }
+    };
 
     useEffect(() => {
         checkOllamaStatus();
@@ -23,11 +34,14 @@ export function Sidebar() {
         return () => clearInterval(interval);
     }, [checkOllamaStatus]);
 
+    const isFamilia = activeWorkspace.id === 'familia';
+
     const navItems = [
-        { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/chat', icon: MessageCircle, label: 'Chat com Ring' },
-        { path: '/tasks', icon: CheckSquare, label: 'Tarefas' },
-        { path: '/projects', icon: FolderKanban, label: 'Projetos' },
+        { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
+        { path: '/finance', icon: Wallet, label: 'Finanças', show: true },
+        { path: '/tasks', icon: CheckSquare, label: 'Tarefas', show: true },
+        { path: '/projects', icon: FolderKanban, label: 'Projetos', show: true },
+        { path: '/docs', icon: FileText, label: 'Documentos', show: isFamilia },
     ];
 
     return (
@@ -38,7 +52,7 @@ export function Sidebar() {
                     <div className="sidebar-brand-icon">
                         <Bot size={20} color="white" />
                     </div>
-                    <span className="sidebar-brand-name">Ring AI</span>
+                    <span className="sidebar-brand-name">Alenfinos</span>
                 </div>
             </div>
 
@@ -49,7 +63,7 @@ export function Sidebar() {
                     <div
                         key={ws.id}
                         className={`workspace-item ${activeWorkspace.id === ws.id ? 'active' : ''}`}
-                        onClick={() => setActiveWorkspace(ws)}
+                        onClick={() => handleSwitchWorkspace(ws)}
                     >
                         <div className={`workspace-avatar ${ws.color}`}>{ws.avatar}</div>
                         <span className="workspace-name">{ws.displayName}</span>
@@ -59,21 +73,32 @@ export function Sidebar() {
 
             {/* Navigation */}
             <nav className="nav-section">
-                {navItems.map((item) => (
-                    <div
-                        key={item.path}
-                        className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-                        onClick={() => navigate(item.path)}
-                    >
-                        <item.icon size={18} />
-                        <span>{item.label}</span>
-                    </div>
-                ))}
+                {navItems
+                    .filter((item) => item.show)
+                    .map((item) => (
+                        <div
+                            key={item.path}
+                            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+                            onClick={() => navigate(item.path)}
+                        >
+                            <item.icon size={18} />
+                            <span>{item.label}</span>
+                        </div>
+                    ))}
             </nav>
 
-            {/* Footer - Ollama Status */}
+            {/* Footer - Chat + Ollama Status + Settings */}
             <div className="sidebar-footer">
-                <div className="ollama-status">
+                {/* Chat link */}
+                <div
+                    className={`nav-item ${location.pathname === '/chat' ? 'active' : ''}`}
+                    onClick={() => navigate('/chat')}
+                >
+                    <MessageCircle size={18} />
+                    <span>Chat com Ring</span>
+                </div>
+
+                <div className="ollama-status" style={{ marginTop: '8px' }}>
                     <div
                         className={`status-dot ${ollamaStatus === 'online' ? 'online' : 'offline'}`}
                     />
@@ -87,7 +112,7 @@ export function Sidebar() {
                 </div>
 
                 <div
-                    className="nav-item"
+                    className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}
                     style={{ marginTop: '8px' }}
                     onClick={() => navigate('/settings')}
                 >

@@ -26,6 +26,22 @@ export interface Project {
     color: string;
     taskCount: number;
     completedTasks: number;
+    columns: BoardColumn[];
+    createdAt: string;
+}
+
+export interface BoardColumn {
+    id: string;
+    title: string;
+    cards: BoardCard[];
+}
+
+export interface BoardCard {
+    id: string;
+    title: string;
+    description?: string;
+    color?: string;
+    labels?: string[];
     createdAt: string;
 }
 
@@ -51,4 +67,35 @@ export interface Memory {
     content: string;
     category: 'preference' | 'fact' | 'task' | 'relationship' | 'routine';
     createdAt: string;
+}
+
+// Finance types
+export interface FinanceTransaction {
+    id: string;
+    workspaceId: string;
+    type: 'income' | 'expense';
+    amount: number;
+    category: string;
+    description: string;
+    date: string;
+}
+
+export interface FinanceSummary {
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+}
+
+// Docs types
+export type DocCategory = 'identidade' | 'comprovantes' | 'contratos' | 'saude' | 'educacao' | 'outros';
+
+export interface FamilyDocument {
+    id: string;
+    name: string;
+    category: DocCategory;
+    owner: string; // workspace member name
+    fileSize?: string;
+    filePath?: string; // local file path for uploaded documents
+    uploadedAt: string;
+    tags?: string[];
 }

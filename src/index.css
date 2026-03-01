@@ -74,7 +74,9 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -93,13 +95,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--color-bg-hover);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-tertiary);
 }
@@ -209,9 +214,17 @@ body {
   flex-shrink: 0;
 }
 
-.workspace-avatar.isis { background: linear-gradient(135deg, var(--color-ws-isis), #6d28d9); }
-.workspace-avatar.angelica { background: linear-gradient(135deg, var(--color-ws-angelica), #db2777); }
-.workspace-avatar.familia { background: linear-gradient(135deg, var(--color-ws-familia), #0891b2); }
+.workspace-avatar.isis {
+  background: linear-gradient(135deg, var(--color-ws-isis), #6d28d9);
+}
+
+.workspace-avatar.angelica {
+  background: linear-gradient(135deg, var(--color-ws-angelica), #db2777);
+}
+
+.workspace-avatar.familia {
+  background: linear-gradient(135deg, var(--color-ws-familia), #0891b2);
+}
 
 .workspace-name {
   font-size: 14px;
@@ -294,8 +307,15 @@ body {
 }
 
 @keyframes pulse-green {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* =============================================
@@ -402,12 +422,29 @@ body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.stat-card.purple::before { background: linear-gradient(90deg, var(--color-accent-primary), #6d28d9); }
-.stat-card.blue::before { background: linear-gradient(90deg, var(--color-info), #2563eb); }
-.stat-card.green::before { background: linear-gradient(90deg, var(--color-success), #16a34a); }
-.stat-card.pink::before { background: linear-gradient(90deg, var(--color-ws-angelica), #db2777); }
-.stat-card.cyan::before { background: linear-gradient(90deg, var(--color-ws-familia), #0891b2); }
-.stat-card.amber::before { background: linear-gradient(90deg, var(--color-warning), #d97706); }
+.stat-card.purple::before {
+  background: linear-gradient(90deg, var(--color-accent-primary), #6d28d9);
+}
+
+.stat-card.blue::before {
+  background: linear-gradient(90deg, var(--color-info), #2563eb);
+}
+
+.stat-card.green::before {
+  background: linear-gradient(90deg, var(--color-success), #16a34a);
+}
+
+.stat-card.pink::before {
+  background: linear-gradient(90deg, var(--color-ws-angelica), #db2777);
+}
+
+.stat-card.cyan::before {
+  background: linear-gradient(90deg, var(--color-ws-familia), #0891b2);
+}
+
+.stat-card.amber::before {
+  background: linear-gradient(90deg, var(--color-warning), #d97706);
+}
 
 .stat-card:hover {
   border-color: var(--color-border-hover);
@@ -439,12 +476,35 @@ body {
   margin-bottom: 16px;
 }
 
-.stat-icon.purple { background: var(--color-accent-muted); color: var(--color-accent-primary); }
-.stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: var(--color-info); }
-.stat-icon.green { background: rgba(34, 197, 94, 0.15); color: var(--color-success); }
-.stat-icon.pink { background: rgba(236, 72, 153, 0.15); color: var(--color-ws-angelica); }
-.stat-icon.cyan { background: rgba(6, 182, 212, 0.15); color: var(--color-ws-familia); }
-.stat-icon.amber { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
+.stat-icon.purple {
+  background: var(--color-accent-muted);
+  color: var(--color-accent-primary);
+}
+
+.stat-icon.blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--color-info);
+}
+
+.stat-icon.green {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+}
+
+.stat-icon.pink {
+  background: rgba(236, 72, 153, 0.15);
+  color: var(--color-ws-angelica);
+}
+
+.stat-icon.cyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--color-ws-familia);
+}
+
+.stat-icon.amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
 
 /* =============================================
    Content Sections Grid
@@ -521,9 +581,20 @@ body {
   letter-spacing: 0.05em;
 }
 
-.task-priority.high { background: rgba(239, 68, 68, 0.15); color: var(--color-error); }
-.task-priority.medium { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
-.task-priority.low { background: rgba(34, 197, 94, 0.15); color: var(--color-success); }
+.task-priority.high {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+.task-priority.medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.task-priority.low {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+}
 
 /* =============================================
    Project Cards
@@ -576,7 +647,10 @@ body {
 .chat-layout {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 
 .chat-header {
@@ -636,6 +710,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -771,12 +846,25 @@ body {
   animation: typingBounce 1.4s ease-in-out infinite;
 }
 
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-6px); }
+
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-6px);
+  }
 }
 
 /* =============================================
@@ -854,8 +942,15 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .welcome-title {
@@ -965,11 +1060,30 @@ body {
   letter-spacing: 0.02em;
 }
 
-.badge.purple { background: var(--color-accent-muted); color: var(--color-accent-secondary); }
-.badge.green { background: rgba(34, 197, 94, 0.15); color: var(--color-success); }
-.badge.amber { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
-.badge.red { background: rgba(239, 68, 68, 0.15); color: var(--color-error); }
-.badge.blue { background: rgba(59, 130, 246, 0.15); color: var(--color-info); }
+.badge.purple {
+  background: var(--color-accent-muted);
+  color: var(--color-accent-secondary);
+}
+
+.badge.green {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+}
+
+.badge.amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.badge.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+.badge.blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--color-info);
+}
 
 /* =============================================
    Modal
@@ -988,8 +1102,13 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modal {
@@ -1008,6 +1127,7 @@ body {
     opacity: 0;
     transform: scale(0.95) translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -1044,6 +1164,269 @@ body {
   transition: width var(--transition-slow);
 }
 
-.progress-fill.purple { background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary)); }
-.progress-fill.green { background: linear-gradient(90deg, var(--color-success), #4ade80); }
-.progress-fill.blue { background: linear-gradient(90deg, var(--color-info), #60a5fa); }
+.progress-fill.purple {
+  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+}
+
+.progress-fill.green {
+  background: linear-gradient(90deg, var(--color-success), #4ade80);
+}
+
+.progress-fill.blue {
+  background: linear-gradient(90deg, var(--color-info), #60a5fa);
+}
+
+/* =============================================
+   Kanban Board
+   ============================================= */
+
+.kanban-board {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  min-height: 400px;
+  align-items: flex-start;
+}
+
+.kanban-column {
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px);
+}
+
+.kanban-column-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-default);
+  flex-shrink: 0;
+}
+
+.kanban-column-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.kanban-column-count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.kanban-cards {
+  padding: 12px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-card {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  cursor: default;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.kanban-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.kanban-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.kanban-card-desc {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.kanban-card-labels {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.kanban-label {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-muted);
+  color: var(--color-accent-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kanban-move-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  min-width: 160px;
+  z-index: 50;
+  box-shadow: var(--shadow-lg);
+  animation: fadeInUp 0.15s ease-out;
+}
+
+.kanban-move-option {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.kanban-move-option:hover {
+  background: var(--color-bg-hover);
+}
+
+.kanban-add-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border-default);
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.kanban-add-card-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.project-card-hover:hover {
+  border-color: var(--color-border-accent) !important;
+  box-shadow: var(--shadow-glow) !important;
+}
+
+/* =============================================
+   Docs Grid
+   ============================================= */
+
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.doc-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: all var(--transition-fast);
+  cursor: default;
+}
+
+.doc-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.doc-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.doc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.doc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doc-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+/* =============================================
+   Select / Dropdown Styling
+   ============================================= */
+
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239999aa' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+select.input option {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
