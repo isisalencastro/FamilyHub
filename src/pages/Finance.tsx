@@ -111,56 +111,14 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
     const totalRenda = [...store.renda.salarios, ...store.renda.vales].reduce((a, b) => a + b.value, 0);
     const totalFixo = store.fixoMensal.reduce((acc, curr) => acc + curr.value, 0);
     const totalParcelamentos = store.parcelamentos.reduce((acc, curr) => acc + curr.value, 0);
+    const totalProblemas = store.problemas.reduce((acc, curr) => acc + curr.total, 0);
+
+    const totalCreditoFaturas = totalParcelamentos + totalProblemas;
+
     const totalDivAngelica = store.dividasAngelica.reduce((acc, curr) => acc + curr.total, 0);
     const totalDivIsis = store.dividasIsis.reduce((acc, curr) => acc + curr.total, 0);
 
-    // Lógica do Mês Atual
-    const today = new Date();
-    const currentMonthNum = today.getMonth() + 1;
-    const currentMonthStr = currentMonthNum.toString().padStart(2, '0');
-    const monthNames = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-    const fullMonthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    const currentMonthName = monthNames[today.getMonth()];
-    const currentYearStr = today.getFullYear().toString();
-    const currentDateDisplay = `${today.getDate()} de ${fullMonthNames[today.getMonth()]} de ${today.getFullYear()}`;
-
-    let totalCreditoRealMes = 0;
-    let outrosDescontosMes = 0;
-
-    store.problemas.forEach(p => {
-        const descUpper = p.desc.toUpperCase();
-        let cost = 0;
-
-        const monthlyMatch = p.desc.match(/(\d+(?:[.,]\d+)?)\/m[êe]s/i);
-        if (monthlyMatch) {
-            cost = parseFloat(monthlyMatch[1].replace(',', '.'));
-        } else {
-            const hasCurrentMonth = descUpper.includes(`MÊS ${currentMonthStr}`) || descUpper.includes(`MES ${currentMonthStr}`) || descUpper.includes(currentMonthName);
-            const hasCurrentYear = descUpper.includes(currentYearStr);
-            if (hasCurrentMonth && hasCurrentYear) {
-                cost = p.total;
-            }
-        }
-
-        if (cost > 0) {
-            if (p.name.toLowerCase().includes('crédito') || p.name.toLowerCase().includes('credito') || p.name.toLowerCase().includes('fatura')) {
-                totalCreditoRealMes += cost;
-            } else {
-                outrosDescontosMes += cost;
-            }
-        }
-    });
-
-    const theoreticalCreditItem = store.fixoMensal.find(f => f.name.toLowerCase().includes('crédito') || f.name.toLowerCase().includes('credito'));
-    const theoreticalCredito = theoreticalCreditItem ? theoreticalCreditItem.value : 0;
-
-    let ajusteCredito = 0;
-    if (totalCreditoRealMes > 0) {
-        ajusteCredito = totalCreditoRealMes - theoreticalCredito;
-    }
-
-    const saldoLiquidoTeorico = (totalRenda - totalFixo) - totalParcelamentos;
-    const saldoRealDoMes = saldoLiquidoTeorico - (ajusteCredito > 0 ? ajusteCredito : 0) - outrosDescontosMes;
+    const saldoLivreReal = totalRenda - totalFixo - totalCreditoFaturas;
 
     return (
         <div className="main-content">
@@ -238,37 +196,33 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                         <div className="stat-label">Total Fixo Mensal (Débito)</div>
                     </div>
 
-                    <div className={`stat-card ${(totalRenda - totalFixo) - totalParcelamentos >= 0 ? 'cyan' : 'amber'}`}>
-                        <div className={`stat-icon ${(totalRenda - totalFixo) - totalParcelamentos >= 0 ? 'cyan' : 'amber'}`}>
-                            <Wallet size={20} />
+                    <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
+                        <div style={{
+                            content: '', position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+                            borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+                            background: 'linear-gradient(90deg, var(--color-warning), #d97706)',
+                        }} />
+                        <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)' }}>
+                            <CreditCard size={20} />
                         </div>
-                        <div
-                            className="stat-value"
-                            style={{ color: (totalRenda - totalFixo) - totalParcelamentos >= 0 ? 'var(--color-ws-familia)' : 'var(--color-warning)' }}
-                        >
-                            {formatCurrency((totalRenda - totalFixo) - totalParcelamentos)}
+                        <div className="stat-value" style={{ color: 'var(--color-warning)' }}>
+                            {formatCurrency(totalCreditoFaturas)}
                         </div>
-                        <div className="stat-label">Teórico Livre</div>
-                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>(Deduzidos fixos e parcelas base)</span>
+                        <div className="stat-label">Créditos, Faturas e Descontos</div>
                     </div>
 
-                    <div className={`stat-card ${saldoRealDoMes >= 0 ? 'green' : 'red'}`} style={{ border: saldoRealDoMes < 0 ? '1px solid var(--color-error)' : '1px solid var(--color-success)', background: saldoRealDoMes < 0 ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.05)' }}>
+                    <div className={`stat-card ${saldoLivreReal >= 0 ? 'green' : 'red'}`} style={{ border: saldoLivreReal < 0 ? '1px solid var(--color-error)' : '1px solid var(--color-success)', background: saldoLivreReal < 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(34, 197, 94, 0.05)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div className={`stat-icon ${saldoRealDoMes >= 0 ? 'green' : 'red'}`}>
-                                <AlertTriangle size={20} />
+                            <div className={`stat-icon ${saldoLivreReal >= 0 ? 'green' : 'red'}`}>
+                                <Wallet size={20} />
                             </div>
-                            <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4, color: 'var(--color-text-secondary)' }}>
-                                {currentDateDisplay}
-                            </span>
                         </div>
-                        <div className="stat-value" style={{ color: saldoRealDoMes >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
-                            {formatCurrency(saldoRealDoMes)}
+                        <div className="stat-value" style={{ color: saldoLivreReal >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
+                            {formatCurrency(saldoLivreReal)}
                         </div>
-                        <div className="stat-label" style={{ fontWeight: 600 }}>Situação Real ({fullMonthNames[today.getMonth()]})</div>
+                        <div className="stat-label" style={{ fontWeight: 600 }}>Saldo Livre do Mês</div>
                         <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
-                            {ajusteCredito > 0 && <div>▲ Ajuste Cartões: -{formatCurrency(ajusteCredito)}</div>}
-                            {outrosDescontosMes > 0 && <div>▲ Descontos Folha: -{formatCurrency(outrosDescontosMes)}</div>}
-                            {saldoRealDoMes < 0 && <span style={{ color: 'var(--color-error)', fontWeight: 600, marginTop: 4, display: 'block' }}>Valor Negativado!</span>}
+                            (Deduzida as faturas e fixos do salário total)
                         </div>
                     </div>
                 </div>
@@ -319,18 +273,35 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                         <div className="card-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <CreditCard size={18} style={{ color: 'var(--color-warning)' }} />
-                                <h2 className="card-title">Crédito e Faturas</h2>
+                                <h2 className="card-title">Créditos, Faturas e Descontos</h2>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span style={{ fontSize: '14px', color: 'var(--color-warning)', fontWeight: 700 }}>
-                                    {formatCurrency(totalParcelamentos)}/mês
+                                    {formatCurrency(totalCreditoFaturas)}/mês
                                 </span>
-                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddParcelamento}>
-                                    <Plus size={14} /> Adicionar
+                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddProblema} title="Adicionar Desconto de Folha/Fatura Única">
+                                    <AlertTriangle size={14} style={{ marginRight: '4px', color: 'var(--color-error)' }} /> Fatura/Desconto
+                                </button>
+                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddParcelamento} title="Adicionar Assinatura ou Parcelamento Cartão">
+                                    <Plus size={14} /> Assinatura/Parcela
                                 </button>
                             </div>
                         </div>
                         <div className="task-list">
+                            {store.problemas.map((item) => (
+                                <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.05)' }}>
+                                    <div>
+                                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-error)' }}>{item.name}</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Fatura do Mês ou Desconto: {item.desc}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-error)' }}>{formatCurrency(item.total)}</span>
+                                        <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeProblema(item.id)}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                             {store.parcelamentos.map((item) => (
                                 <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
                                     <div>
@@ -345,7 +316,7 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                                     </div>
                                 </div>
                             ))}
-                            {store.parcelamentos.length === 0 && <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-tertiary)' }}>Nenhum gasto de crédito.</div>}
+                            {store.parcelamentos.length === 0 && store.problemas.length === 0 && <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-tertiary)' }}>Nenhum gasto de crédito.</div>}
                         </div>
                     </div>
                 </div>
@@ -414,31 +385,7 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                             </div>
                         </div>
 
-                        {/* Problemas / Histórico Futuro */}
-                        <div style={{ marginTop: '20px', borderTop: '1px solid var(--color-border-default)', paddingTop: '20px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <h3 style={{ fontSize: '14px', color: 'var(--color-warning)', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <CalendarClock size={14} /> Riscos e Avisos (Em conta e Descontos folha)
-                                </h3>
-                                <button className="btn btn-ghost btn-sm" onClick={handleAddProblema}><Plus size={14} /> Adicionar Aviso</button>
-                            </div>
 
-                            <div className="task-list">
-                                {store.problemas.map((item) => (
-                                    <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.05)' }}>
-                                        <div>
-                                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-error)' }}>{item.name}</div>
-                                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{item.desc}</div>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-error)' }}>{formatCurrency(item.total)}</span>
-                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeProblema(item.id)}><Trash2 size={14} /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {store.problemas.length === 0 && <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-tertiary)' }}>Nada no radar! 🙏</div>}
-                            </div>
-                        </div>
 
                     </div>
                 </div>

@@ -49,7 +49,7 @@ export function Dashboard() {
 
     // Calculate Dynamic Finance Summary for Family
     const staticFamilyIncome = famFinance.renda.salarios.reduce((acc, c) => acc + c.value, 0) + famFinance.renda.vales.reduce((acc, c) => acc + c.value, 0);
-    const staticFamilyExpense = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0);
+    const staticFamilyExpense = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0) + famFinance.parcelamentos.reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.reduce((acc, c) => acc + c.total, 0);
 
     const displayIncome = isFamilia ? staticFamilyIncome : financeSummary.totalIncome;
     const displayExpense = isFamilia ? staticFamilyExpense : financeSummary.totalExpense;

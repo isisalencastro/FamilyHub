@@ -54,7 +54,6 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>()(
             fixoMensal: [
                 { id: 'f1', name: 'Alimentação', value: 1000, paid: false },
                 { id: 'f2', name: 'Aluguel', value: 650, paid: false },
-                { id: 'f3', name: 'Crédito + Parcelamentos', value: 568.20, paid: false },
                 { id: 'f4', name: 'Terapia Angélica', value: 400, paid: false },
                 { id: 'f5', name: 'Faculdade Isis', value: 305.09, paid: false },
                 { id: 'f6', name: 'Terapia Isis', value: 300, paid: false },
