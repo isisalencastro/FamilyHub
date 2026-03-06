@@ -9,10 +9,17 @@ import {
     Wallet,
     FileText,
     Link as LinkIcon,
-    Calendar as CalendarIcon
+    Calendar as CalendarIcon,
+    Home,
+    Users,
+    User,
+    Sun,
+    Moon,
+    ShoppingCart
 } from 'lucide-react';
 import { useWorkspaceStore, WORKSPACES } from '@/stores/workspaceStore';
 import { useChatStore } from '@/stores/chatStore';
+import { useThemeStore } from '@/stores/themeStore';
 import type { Workspace } from '@/types';
 import { useEffect } from 'react';
 
@@ -21,6 +28,7 @@ export function Sidebar() {
     const navigate = useNavigate();
     const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
     const { ollamaStatus, checkOllamaStatus, setActiveConversation } = useChatStore();
+    const { theme, toggleTheme } = useThemeStore();
 
     const handleSwitchWorkspace = (wsId: string) => {
         if (wsId !== activeWorkspace.id) {
@@ -40,11 +48,12 @@ export function Sidebar() {
     const isFamilia = activeWorkspace.id === 'familia';
 
     const navItems = [
-        { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-        { path: '/finance', icon: Wallet, label: 'Finanças', show: isFamilia },
+        { path: '/', icon: Home, label: 'Dashboard', show: true },
+        { path: '/calendar', icon: CalendarIcon, label: 'Calendário', show: true },
         { path: '/tasks', icon: CheckSquare, label: 'Tarefas', show: true },
         { path: '/projects', icon: FolderKanban, label: 'Projetos', show: true },
-        { path: '/calendar', icon: CalendarIcon, label: 'Calendário', show: true },
+        { path: '/shopping', icon: ShoppingCart, label: 'Compras', show: isFamilia },
+        { path: '/finance', icon: Wallet, label: 'Finanças', show: isFamilia },
         { path: '/docs', icon: FileText, label: 'Documentos', show: isFamilia },
         { path: '/integrations', icon: LinkIcon, label: 'Integrações', show: isFamilia },
     ];
@@ -62,8 +71,8 @@ export function Sidebar() {
             </div>
 
             {/* Navigation Context */}
-            <div className="workspace-label" style={{ marginTop: '16px', padding: '0 16px' }}>
-                {isFamilia ? 'Acessos da Casa' : `Espaço de ${activeWorkspace.displayName}`}
+            <div className="workspace-label" style={{ marginTop: '20px', padding: '0 20px' }}>
+                {isFamilia ? 'Menu Principal' : `Espaço de ${activeWorkspace.displayName}`}
             </div>
 
             {/* Navigation */}
@@ -85,6 +94,23 @@ export function Sidebar() {
             {/* Footer switcher and Chat */}
             <div className="sidebar-footer" style={{ marginTop: 'auto' }}>
 
+                {/* Theme Toggle */}
+                <div className="theme-toggle" onClick={toggleTheme}>
+                    <span className="theme-toggle-label">
+                        {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
+                    </span>
+                    <div className={`theme-toggle-track ${theme}`}>
+                        <div className={`theme-toggle-knob ${theme}`}>
+                            {theme === 'light'
+                                ? <Sun size={12} color="#f59e0b" />
+                                : <Moon size={12} color="#a5b4fc" />
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ height: '8px' }} />
+
                 <div className="workspace-label" style={{ padding: '8px 16px 4px', borderTop: '1px solid var(--color-border-default)', paddingTop: '16px' }}>
                     Alternar Perfil
                 </div>
@@ -92,14 +118,22 @@ export function Sidebar() {
                 <div
                     className={`nav-item ${activeWorkspace.id === 'familia' ? 'active' : ''}`}
                     onClick={() => handleSwitchWorkspace('familia')}
+                    style={{ marginBottom: '4px' }}
                 >
-                    <LayoutDashboard size={18} />
+                    <div style={{
+                        width: 18, height: 18, borderRadius: '6px',
+                        background: 'linear-gradient(135deg, var(--color-ws-familia), #0891b2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <Users size={11} color="white" />
+                    </div>
                     <span>Visão Geral</span>
                 </div>
 
                 <div
                     className={`nav-item ${activeWorkspace.id === 'isis' ? 'active' : ''}`}
                     onClick={() => handleSwitchWorkspace('isis')}
+                    style={{ marginBottom: '4px' }}
                 >
                     <div className="workspace-avatar isis" style={{ width: 18, height: 18, fontSize: 10, margin: 0 }}>I</div>
                     <span>Perfil de Isis</span>
@@ -108,12 +142,13 @@ export function Sidebar() {
                 <div
                     className={`nav-item ${activeWorkspace.id === 'angelica' ? 'active' : ''}`}
                     onClick={() => handleSwitchWorkspace('angelica')}
+                    style={{ marginBottom: '4px' }}
                 >
                     <div className="workspace-avatar angelica" style={{ width: 18, height: 18, fontSize: 10, margin: 0 }}>A</div>
                     <span>Perfil de Angélica</span>
                 </div>
 
-                <div style={{ height: '16px' }}></div>
+                <div style={{ height: '12px' }}></div>
                 {/* Chat link */}
                 <div
                     className={`nav-item ${location.pathname === '/chat' ? 'active' : ''}`}
@@ -129,10 +164,10 @@ export function Sidebar() {
                     />
                     <span>
                         {ollamaStatus === 'online'
-                            ? 'Ollama conectado'
+                            ? 'Ring conectada'
                             : ollamaStatus === 'checking'
                                 ? 'Verificando...'
-                                : 'Ollama offline'}
+                                : 'Ring offline'}
                     </span>
                 </div>
 

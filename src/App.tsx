@@ -10,6 +10,7 @@ import { Docs } from '@/pages/Docs';
 import { Integrations } from '@/pages/Integrations';
 import { CalendarView } from '@/pages/CalendarView';
 import { SettingsPage } from '@/pages/Settings';
+import { Shopping } from '@/pages/Shopping';
 import { useTaskStore } from '@/stores/taskStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useFinanceStore } from '@/stores/financeStore';
@@ -77,6 +78,7 @@ function App() {
           <Route path="/docs" element={<Docs />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/shopping" element={<Shopping />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>

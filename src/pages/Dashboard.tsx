@@ -8,6 +8,11 @@ import {
     Check,
     FileText,
     MessageCircle,
+    Bell,
+    ChevronRight,
+    Clock,
+    Star,
+    Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -36,7 +41,7 @@ export function Dashboard() {
     const doneTasks = wsTasks.filter((t) => t.status === 'done');
 
     const greetingName =
-        activeWorkspace.id === 'familia' ? 'Visão Geral' : activeWorkspace.displayName;
+        activeWorkspace.id === 'familia' ? 'Família' : activeWorkspace.displayName;
 
     const hour = new Date().getHours();
     const greeting =
@@ -56,55 +61,128 @@ export function Dashboard() {
     const displayExpense = isFamilia ? staticFamilyExpense : financeSummary.totalExpense;
     const displayBalance = isFamilia ? (staticFamilyIncome - staticFamilyExpense) : financeSummary.balance;
 
+    const taskCompletionRate = wsTasks.length > 0 ? Math.round((doneTasks.length / wsTasks.length) * 100) : 0;
+
     return (
         <div className="main-content">
             <div className="page-container">
                 {/* Header */}
-                <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '32px',
+                }}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                            <Sparkles size={28} style={{ color: 'var(--color-accent-primary)' }} />
-                            <h1 className="page-title">
-                                {greeting}, {greetingName}!
-                            </h1>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            marginBottom: '8px',
+                        }}>
+                            <div style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '14px',
+                                background: 'linear-gradient(135deg, var(--color-accent-primary), #6d28d9)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: 'var(--shadow-glow)',
+                            }}>
+                                <Sparkles size={22} color="white" />
+                            </div>
+                            <div>
+                                <h1 style={{
+                                    fontSize: '26px',
+                                    fontWeight: 800,
+                                    letterSpacing: '-0.03em',
+                                    color: 'var(--color-text-primary)',
+                                    margin: 0,
+                                }}>
+                                    {greeting}, {greetingName}!
+                                </h1>
+                                <p style={{
+                                    fontSize: '14px',
+                                    color: 'var(--color-text-secondary)',
+                                    margin: 0,
+                                    marginTop: '2px',
+                                }}>
+                                    {isFamilia
+                                        ? 'Resumo de todas as tarefas e finanças da casa.'
+                                        : 'Seu espaço pessoal de tarefas e anotações. ✨'}
+                                </p>
+                            </div>
                         </div>
-                        <p className="page-subtitle">
-                            {isFamilia ? 'Resumo de todas as tarefas e finanças da casa.' : 'Seu espaço pessoal de tarefas e anotações. ✨'}
-                        </p>
                     </div>
-                    {isFamilia && <WeatherWidget />}
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        {isFamilia && <WeatherWidget />}
+                    </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="dashboard-grid" style={{ gridTemplateColumns: isFamilia ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)' }}>
-                    <div className="stat-card purple">
+                <div className="dashboard-grid" style={{
+                    gridTemplateColumns: isFamilia ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
+                }}>
+                    <div className="stat-card purple" style={{ animation: 'scaleIn 0.3s ease-out' }}>
                         <div className="stat-icon purple">
-                            <CheckSquare size={20} />
+                            <CheckSquare size={22} />
                         </div>
                         <div className="stat-value">{pendingTasks.length}</div>
                         <div className="stat-label">Tarefas pendentes</div>
+                        {wsTasks.length > 0 && (
+                            <div style={{
+                                marginTop: '12px',
+                                height: '4px',
+                                background: 'var(--color-bg-hover)',
+                                borderRadius: 'var(--radius-full)',
+                                overflow: 'hidden',
+                            }}>
+                                <div style={{
+                                    width: `${100 - taskCompletionRate}%`,
+                                    height: '100%',
+                                    background: 'linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary))',
+                                    borderRadius: 'var(--radius-full)',
+                                    transition: 'width 0.5s ease',
+                                }} />
+                            </div>
+                        )}
                     </div>
 
-                    <div className="stat-card green">
+                    <div className="stat-card green" style={{ animation: 'scaleIn 0.3s ease-out 0.1s', animationFillMode: 'backwards' }}>
                         <div className="stat-icon green">
-                            <TrendingUp size={20} />
+                            <TrendingUp size={22} />
                         </div>
                         <div className="stat-value">{doneTasks.length}</div>
                         <div className="stat-label">Tarefas concluídas</div>
+                        {wsTasks.length > 0 && (
+                            <div style={{
+                                marginTop: '12px',
+                                fontSize: '12px',
+                                color: 'var(--color-success)',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                            }}>
+                                <Star size={12} />
+                                {taskCompletionRate}% completo
+                            </div>
+                        )}
                     </div>
 
-                    <div className="stat-card blue">
+                    <div className="stat-card blue" style={{ animation: 'scaleIn 0.3s ease-out 0.2s', animationFillMode: 'backwards' }}>
                         <div className="stat-icon blue">
-                            <FolderKanban size={20} />
+                            <FolderKanban size={22} />
                         </div>
                         <div className="stat-value">{wsProjects.length}</div>
                         <div className="stat-label">Projetos ativos</div>
                     </div>
 
                     {isFamilia && (
-                        <div className="stat-card cyan">
+                        <div className="stat-card cyan" style={{ animation: 'scaleIn 0.3s ease-out 0.3s', animationFillMode: 'backwards' }}>
                             <div className="stat-icon cyan">
-                                <FileText size={20} />
+                                <FileText size={22} />
                             </div>
                             <div className="stat-value">{documents.length}</div>
                             <div className="stat-label">Documentos</div>
@@ -115,32 +193,42 @@ export function Dashboard() {
                 {/* Content Grid */}
                 <div className="content-grid">
                     {/* Finance Summary */}
-                    <div className="card">
+                    <div className="card" style={{ animation: 'slideInLeft 0.4s ease-out' }}>
                         <div className="card-header">
-                            <h2 className="card-title">Finanças</h2>
+                            <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Wallet size={18} style={{ color: 'var(--color-accent-primary)' }} />
+                                Finanças
+                            </h2>
                             <button
                                 className="btn btn-ghost"
                                 onClick={() => navigate('/finance')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--color-accent-secondary)' }}
                             >
-                                Ver tudo <ArrowRight size={14} />
+                                Ver tudo <ChevronRight size={14} />
                             </button>
                         </div>
-                        <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                            <div style={{ flex: 1, padding: '12px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-md)' }}>
-                                <div style={{ fontSize: '12px', color: 'var(--color-success)', marginBottom: '4px' }}>Receita {isFamilia ? '(Salários+Vales)' : ''}</div>
-                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(displayIncome)}</div>
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                            <div className="finance-summary-card income" style={{ flex: 1 }}>
+                                <div style={{ fontSize: '11px', color: 'var(--color-success)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Receita {isFamilia ? '(Salários+Vales)' : ''}
+                                </div>
+                                <div style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em' }}>{formatCurrency(displayIncome)}</div>
                             </div>
-                            <div style={{ flex: 1, padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)' }}>
-                                <div style={{ fontSize: '12px', color: 'var(--color-error)', marginBottom: '4px' }}>Despesa {isFamilia ? '(Fixa)' : ''}</div>
-                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{formatCurrency(displayExpense)}</div>
+                            <div className="finance-summary-card expense" style={{ flex: 1 }}>
+                                <div style={{ fontSize: '11px', color: 'var(--color-error)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Despesa {isFamilia ? '(Fixa)' : ''}
+                                </div>
+                                <div style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em' }}>{formatCurrency(displayExpense)}</div>
                             </div>
                         </div>
-                        <div style={{ padding: '12px', background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>{isFamilia ? 'Fluxo Livre Planejado' : 'Saldo'}</div>
+                        <div className="finance-summary-card balance">
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {isFamilia ? 'Fluxo Livre Planejado' : 'Saldo'}
+                            </div>
                             <div style={{
-                                fontSize: '20px',
+                                fontSize: '22px',
                                 fontWeight: 800,
+                                letterSpacing: '-0.02em',
                                 color: displayBalance >= 0 ? 'var(--color-success)' : 'var(--color-error)',
                             }}>
                                 {formatCurrency(displayBalance)}
@@ -149,15 +237,18 @@ export function Dashboard() {
                     </div>
 
                     {/* Tasks */}
-                    <div className="card">
+                    <div className="card" style={{ animation: 'slideInLeft 0.4s ease-out 0.1s', animationFillMode: 'backwards' }}>
                         <div className="card-header">
-                            <h2 className="card-title">Tarefas recentes</h2>
+                            <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <CheckSquare size={18} style={{ color: 'var(--color-accent-primary)' }} />
+                                Tarefas recentes
+                            </h2>
                             <button
                                 className="btn btn-ghost"
                                 onClick={() => navigate('/tasks')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--color-accent-secondary)' }}
                             >
-                                Ver todas <ArrowRight size={14} />
+                                Ver todas <ChevronRight size={14} />
                             </button>
                         </div>
                         <div className="task-list">
@@ -173,95 +264,94 @@ export function Dashboard() {
                                 </div>
                             ))}
                             {wsTasks.length === 0 && (
-                                <p style={{ color: 'var(--color-text-tertiary)', fontSize: '14px', padding: '12px' }}>
-                                    Nenhuma tarefa ainda. Que tal criar uma?
-                                </p>
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '24px 12px',
+                                    color: 'var(--color-text-tertiary)',
+                                }}>
+                                    <Zap size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                                    <p style={{ fontSize: '14px' }}>
+                                        Nenhuma tarefa ainda. Que tal criar uma?
+                                    </p>
+                                </div>
                             )}
                         </div>
                     </div>
+
                     {/* Calendar (Only for Family) */}
                     {isFamilia && <CalendarWidget />}
                 </div>
 
                 {/* Quick Access Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: isFamilia ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '12px', marginTop: '20px' }}>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isFamilia ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                    gap: '12px',
+                    marginTop: '16px',
+                }}>
                     <div
-                        className="card"
-                        style={{
-                            cursor: 'pointer',
-                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(109, 40, 217, 0.04))',
-                            borderColor: 'var(--color-border-default)',
-                        }}
+                        className="quick-access-card"
                         onClick={() => navigate('/projects')}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 1 }}>
                             <div style={{
-                                width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                                width: '44px', height: '44px', borderRadius: 'var(--radius-md)',
                                 background: 'var(--color-accent-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                                <FolderKanban size={20} style={{ color: 'var(--color-accent-primary)' }} />
+                                <FolderKanban size={22} style={{ color: 'var(--color-accent-primary)' }} />
                             </div>
-                            <div>
-                                <div style={{ fontSize: '14px', fontWeight: 600 }}>Projetos</div>
-                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '14px', fontWeight: 700 }}>Projetos</div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                                     {wsProjects.length} projeto{wsProjects.length !== 1 ? 's' : ''} · Board Kanban
                                 </div>
                             </div>
-                            <ArrowRight size={16} style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                            <ChevronRight size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                         </div>
                     </div>
 
                     <div
-                        className="card"
-                        style={{
-                            cursor: 'pointer',
-                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(109, 40, 217, 0.04))',
-                            borderColor: 'var(--color-border-default)',
-                        }}
+                        className="quick-access-card"
                         onClick={() => navigate('/chat')}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 1 }}>
                             <div style={{
-                                width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                                width: '44px', height: '44px', borderRadius: 'var(--radius-md)',
                                 background: 'linear-gradient(135deg, var(--color-accent-primary), #6d28d9)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: 'var(--shadow-glow)',
                             }}>
-                                <MessageCircle size={20} color="white" />
+                                <MessageCircle size={22} color="white" />
                             </div>
-                            <div>
-                                <div style={{ fontSize: '14px', fontWeight: 600 }}>Chat com Ring</div>
-                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '14px', fontWeight: 700 }}>Chat com Ring</div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                                     Sua assistente pessoal
                                 </div>
                             </div>
-                            <ArrowRight size={16} style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                            <ChevronRight size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                         </div>
                     </div>
 
                     {isFamilia && (
                         <div
-                            className="card"
-                            style={{
-                                cursor: 'pointer',
-                                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(8, 145, 178, 0.04))',
-                                borderColor: 'var(--color-border-default)',
-                            }}
+                            className="quick-access-card"
                             onClick={() => navigate('/docs')}
                         >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 1 }}>
                                 <div style={{
-                                    width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
-                                    background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '44px', height: '44px', borderRadius: 'var(--radius-md)',
+                                    background: 'rgba(6, 182, 212, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}>
-                                    <FileText size={20} style={{ color: 'var(--color-ws-familia)' }} />
+                                    <FileText size={22} style={{ color: 'var(--color-ws-familia)' }} />
                                 </div>
-                                <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 600 }}>Documentos</div>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 700 }}>Documentos</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                                         {documents.length} documento{documents.length !== 1 ? 's' : ''} da família
                                     </div>
                                 </div>
-                                <ArrowRight size={16} style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                                <ChevronRight size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                             </div>
                         </div>
                     )}
