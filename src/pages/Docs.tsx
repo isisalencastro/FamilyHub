@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
     FileText,
     Plus,
@@ -17,7 +17,6 @@ import {
     File as FileIcon
 } from 'lucide-react';
 import { useDocStore } from '@/stores/docStore';
-import { useFileUpload } from '@/hooks/useFileUpload';
 import type { DocCategory } from '@/types';
 
 const CATEGORY_COLORS: Record<DocCategory, string> = {
@@ -44,14 +43,20 @@ function getFileIcon(fileName: string) {
 }
 
 export function Docs() {
-    const { documents, categories, addDocument, deleteDocument, searchDocs } = useDocStore();
-    const { selectedFile, isUploading, selectFile, clearFile, copyFileToAppData, openFile, FileInput } = useFileUpload();
+    const { documents, categories, isLoading, loadDocuments, addDocument, deleteDocument, openFile, searchDocs } = useDocStore();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeCategory, setActiveCategory] = useState<DocCategory | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNew, setShowNew] = useState(false);
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState<DocCategory>('outros');
     const [newOwner, setNewOwner] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    // Load documents from IndexedDB on mount
+    useEffect(() => {
+        loadDocuments();
+    }, []);
 
     const filteredDocs = searchQuery
         ? searchDocs(searchQuery)
@@ -59,59 +64,41 @@ export function Docs() {
             ? documents
             : documents.filter((d) => d.category === activeCategory);
 
-    const handleSelectFile = async () => {
-        await selectFile();
-        // Auto-fill name from selected file if name is empty
-        if (selectedFile && !newName.trim()) {
-            const nameWithoutExt = selectedFile.name.replace(/\.[^.]+$/, '');
+    const handleSelectFile = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSelectedFile(file);
+        if (!newName.trim()) {
+            const nameWithoutExt = file.name.replace(/\.[^.]+$/, '');
             setNewName(nameWithoutExt);
         }
+        // Reset so the same file can be selected again
+        e.target.value = '';
     };
 
     const handleCreate = async () => {
         if (!newName.trim()) return;
 
-        try {
-            let savedPath: string | undefined;
+        await addDocument({
+            name: newName.trim(),
+            category: newCategory,
+            owner: newOwner.trim() || 'Família',
+            tags: [],
+            file: selectedFile,
+        });
 
-            if (selectedFile) {
-                savedPath = await copyFileToAppData(selectedFile.name);
-            }
-
-            addDocument({
-                name: newName.trim(),
-                category: newCategory,
-                owner: newOwner.trim() || 'Família',
-                fileSize: selectedFile?.size || 'N/A',
-                filePath: savedPath,
-                tags: [],
-            });
-
-            setNewName('');
-            setNewOwner('');
-            clearFile();
-            setShowNew(false);
-        } catch (err) {
-            console.error('Erro ao salvar documento:', err);
-            // Still save the document entry even if file copy fails
-            addDocument({
-                name: newName.trim(),
-                category: newCategory,
-                owner: newOwner.trim() || 'Família',
-                fileSize: selectedFile?.size || 'N/A',
-                filePath: undefined,
-                tags: [],
-            });
-            setNewName('');
-            setNewOwner('');
-            clearFile();
-            setShowNew(false);
-        }
+        setNewName('');
+        setNewOwner('');
+        setSelectedFile(null);
+        setShowNew(false);
     };
 
-    const handleOpenFile = async (filePath?: string) => {
-        if (!filePath) return;
-        await openFile(filePath);
+    const handleOpenFile = async (docId: string) => {
+        await openFile(docId);
     };
 
     const getCategoryCount = (cat: DocCategory) =>
@@ -119,8 +106,14 @@ export function Docs() {
 
     return (
         <div className="main-content">
-            {/* Hidden file input for browser mode */}
-            <FileInput />
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                accept="*"
+            />
 
             <div className="page-container">
                 {/* Header */}
@@ -248,14 +241,14 @@ export function Docs() {
                                             {selectedFile.name}
                                         </div>
                                         <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>
-                                            {selectedFile.size} · Clique para trocar
+                                            {(selectedFile.size / 1024).toFixed(1)} KB · Clique para trocar
                                         </div>
                                     </div>
                                     <button
                                         className="btn btn-ghost"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            clearFile();
+                                            setSelectedFile(null);
                                         }}
                                         style={{ padding: '4px', color: 'var(--color-text-tertiary)', flexShrink: 0 }}
                                     >
@@ -320,7 +313,7 @@ export function Docs() {
                                 className="btn btn-secondary"
                                 onClick={() => {
                                     setShowNew(false);
-                                    clearFile();
+                                    setSelectedFile(null);
                                     setNewName('');
                                     setNewOwner('');
                                 }}
@@ -330,10 +323,10 @@ export function Docs() {
                             <button
                                 className="btn btn-primary"
                                 onClick={handleCreate}
-                                disabled={isUploading}
+                                disabled={isLoading}
                                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
-                                {isUploading ? (
+                                {isLoading ? (
                                     <>
                                         <div style={{
                                             width: '14px',
@@ -364,20 +357,20 @@ export function Docs() {
                                 <div
                                     className="doc-icon"
                                     style={{
-                                        background: `${CATEGORY_COLORS[doc.category]}20`,
-                                        color: CATEGORY_COLORS[doc.category],
-                                        cursor: doc.filePath ? 'pointer' : 'default',
+                                        background: `${CATEGORY_COLORS[doc.category as DocCategory]}20`,
+                                        color: CATEGORY_COLORS[doc.category as DocCategory],
+                                        cursor: doc.hasFile ? 'pointer' : 'default',
                                     }}
-                                    onClick={() => doc.filePath && handleOpenFile(doc.filePath)}
-                                    title={doc.filePath ? 'Clique para abrir o arquivo' : undefined}
+                                    onClick={() => doc.hasFile && handleOpenFile(doc.id)}
+                                    title={doc.hasFile ? 'Clique para abrir o arquivo' : undefined}
                                 >
-                                    {doc.filePath ? getFileIcon(doc.filePath) : <FileText size={20} />}
+                                    {doc.hasFile ? getFileIcon(doc.fileName) : <FileText size={20} />}
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                    {doc.filePath && (
+                                    {doc.hasFile && (
                                         <button
                                             className="btn btn-ghost"
-                                            onClick={() => handleOpenFile(doc.filePath)}
+                                            onClick={() => handleOpenFile(doc.id)}
                                             style={{ color: 'var(--color-text-tertiary)', padding: '4px' }}
                                             title="Abrir arquivo"
                                         >
@@ -394,7 +387,7 @@ export function Docs() {
                                 </div>
                             </div>
                             <div className="doc-name">{doc.name}</div>
-                            {doc.filePath && (
+                            {doc.hasFile && (
                                 <div style={{
                                     fontSize: '11px',
                                     color: 'var(--color-accent-secondary)',
@@ -404,7 +397,7 @@ export function Docs() {
                                     gap: '4px',
                                 }}>
                                     <Upload size={10} />
-                                    Arquivo anexado
+                                    {doc.fileName}
                                 </div>
                             )}
                             <div className="doc-meta">
@@ -414,7 +407,7 @@ export function Docs() {
                                 <span className="doc-meta-item">
                                     <Calendar size={12} /> {new Date(doc.uploadedAt).toLocaleDateString('pt-BR')}
                                 </span>
-                                {doc.fileSize && (
+                                {doc.fileSize && doc.fileSize !== 'N/A' && (
                                     <span className="doc-meta-item">
                                         <HardDrive size={12} /> {doc.fileSize}
                                     </span>
@@ -424,8 +417,8 @@ export function Docs() {
                                 <span
                                     className="badge"
                                     style={{
-                                        background: `${CATEGORY_COLORS[doc.category]}20`,
-                                        color: CATEGORY_COLORS[doc.category],
+                                        background: `${CATEGORY_COLORS[doc.category as DocCategory]}20`,
+                                        color: CATEGORY_COLORS[doc.category as DocCategory],
                                     }}
                                 >
                                     {categories.find((c) => c.value === doc.category)?.icon}{' '}

@@ -64,8 +64,8 @@ export function Finance() {
     };
 
     const generateAIDiagnostic = () => {
-        if (chatStore.ollamaStatus !== 'online') {
-            alert("A Inteligência Artificial (Ring) está Offline. Certifique-se de que o Ollama está rodando no sistema!");
+        if (chatStore.aiStatus !== 'online') {
+            alert("A Inteligência Artificial (Ring) não está configurada. Configure sua API Key da OpenAI nas Configurações!");
             return;
         }
 

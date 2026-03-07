@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
     CheckSquare,
     FolderKanban,
@@ -30,7 +31,9 @@ export function Dashboard() {
     const { tasks, toggleTask } = useTaskStore();
     const { projects } = useProjectStore();
     const { getSummaryByWorkspace, getTransactionsByWorkspace } = useFinanceStore();
-    const { documents } = useDocStore();
+    const { documents, loadDocuments } = useDocStore();
+
+    useEffect(() => { loadDocuments(); }, []);
 
     const wsTasks = tasks.filter((t) => t.workspaceId === activeWorkspace.id);
     const wsProjects = projects.filter((p) => p.workspaceId === activeWorkspace.id);

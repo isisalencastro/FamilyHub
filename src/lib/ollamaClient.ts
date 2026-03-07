@@ -6,7 +6,7 @@
 // - Browser: uses fetch() directly to Ollama HTTP API
 // ============================================
 
-const isTauri = (): boolean => !!(window as any).__TAURI__;
+const isTauri = (): boolean => !!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__;
 
 /**
  * Check if Ollama is running and reachable

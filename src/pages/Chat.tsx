@@ -12,8 +12,8 @@ export function Chat() {
         conversations,
         activeConversationId,
         isLoading,
-        ollamaModel,
-        ollamaStatus,
+        aiModel,
+        aiStatus,
         sendMessage,
         createConversation,
         setActiveConversation,
@@ -70,7 +70,7 @@ export function Chat() {
                     <div>
                         <div className="chat-title">Ring</div>
                         <div className="chat-model">
-                            {ollamaStatus === 'online' ? `Modelo: ${ollamaModel}` : 'Modo offline'}
+                            {aiStatus === 'online' ? `OpenAI · ${aiModel}` : 'API não configurada'}
                         </div>
                     </div>
                 </div>

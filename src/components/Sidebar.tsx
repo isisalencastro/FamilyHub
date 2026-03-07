@@ -27,7 +27,7 @@ export function Sidebar() {
     const location = useLocation();
     const navigate = useNavigate();
     const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
-    const { ollamaStatus, checkOllamaStatus, setActiveConversation } = useChatStore();
+    const { aiStatus, checkAiStatus, setActiveConversation } = useChatStore();
     const { theme, toggleTheme } = useThemeStore();
 
     const handleSwitchWorkspace = (wsId: string) => {
@@ -40,10 +40,10 @@ export function Sidebar() {
     };
 
     useEffect(() => {
-        checkOllamaStatus();
-        const interval = setInterval(checkOllamaStatus, 30000);
+        checkAiStatus();
+        const interval = setInterval(checkAiStatus, 30000);
         return () => clearInterval(interval);
-    }, [checkOllamaStatus]);
+    }, [checkAiStatus]);
 
     const isFamilia = activeWorkspace.id === 'familia';
 
@@ -122,14 +122,14 @@ export function Sidebar() {
 
                 <div className="ollama-status" style={{ marginTop: '8px' }}>
                     <div
-                        className={`status-dot ${ollamaStatus === 'online' ? 'online' : 'offline'}`}
+                        className={`status-dot ${aiStatus === 'online' ? 'online' : 'offline'}`}
                     />
                     <span>
-                        {ollamaStatus === 'online'
-                            ? 'Ring conectada'
-                            : ollamaStatus === 'checking'
+                        {aiStatus === 'online'
+                            ? 'Ring conectada (OpenAI)'
+                            : aiStatus === 'checking'
                                 ? 'Verificando...'
-                                : 'Ring offline'}
+                                : 'API não configurada'}
                     </span>
                 </div>
 

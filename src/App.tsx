@@ -14,7 +14,7 @@ import { Shopping } from '@/pages/Shopping';
 import { useTaskStore } from '@/stores/taskStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useFinanceStore } from '@/stores/financeStore';
-import { useDocStore } from '@/stores/docStore';
+
 import { useChatStore } from '@/stores/chatStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
@@ -29,8 +29,7 @@ function App() {
   const fetchTransactions = useFinanceStore((s) => s.fetchTransactions);
   const subscribeFinanceRealtime = useFinanceStore((s) => s.subscribeRealtime);
 
-  const fetchDocuments = useDocStore((s) => s.fetchDocuments);
-  const subscribeDocsRealtime = useDocStore((s) => s.subscribeRealtime);
+
 
   const fetchConversations = useChatStore((s) => s.fetchConversations);
   const fetchMemories = useChatStore((s) => s.fetchMemories);
@@ -47,7 +46,7 @@ function App() {
     fetchTasks();
     fetchProjects();
     fetchTransactions();
-    fetchDocuments();
+
     fetchConversations();
     fetchMemories();
 
@@ -55,14 +54,14 @@ function App() {
     const unsubTasks = subscribeTasksRealtime();
     const unsubProjects = subscribeProjectsRealtime();
     const unsubFinance = subscribeFinanceRealtime();
-    const unsubDocs = subscribeDocsRealtime();
+
     const unsubChat = subscribeChatRealtime();
 
     return () => {
       unsubTasks();
       unsubProjects();
       unsubFinance();
-      unsubDocs();
+
       unsubChat();
     };
   }, []);

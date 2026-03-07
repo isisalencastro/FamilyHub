@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Bot, RefreshCw, Cpu, Wifi, Server, Database, UserCircle, AlertTriangle } from 'lucide-react';
+import { Bot, RefreshCw, Cpu, Wifi, Database, UserCircle, AlertTriangle, Key, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { isTauri } from '@/lib/ollamaClient';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { getOpenAIApiKey, setOpenAIApiKey, isOpenAIConfigured, validateOpenAIKey, OPENAI_MODELS } from '@/lib/openaiClient';
 
 export function SettingsPage() {
     const { activeWorkspace } = useWorkspaceStore();
     const {
-        ollamaStatus,
-        ollamaModel,
-        ollamaHost,
-        availableModels,
+        aiStatus,
+        aiModel,
         customInstructions,
-        checkOllamaStatus,
-        loadModels,
-        setOllamaModel,
-        setOllamaHost,
+        checkAiStatus,
+        setAiModel,
         setCustomInstruction,
     } = useChatStore();
 
-    const [hostInput, setHostInput] = useState(ollamaHost);
+    const [apiKeyInput, setApiKeyInput] = useState(getOpenAIApiKey());
+    const [showKey, setShowKey] = useState(false);
+    const [keyValidating, setKeyValidating] = useState(false);
+    const [keyValid, setKeyValid] = useState<boolean | null>(null);
     const [instructionInput, setInstructionInput] = useState(customInstructions[activeWorkspace.id] || '');
 
     useEffect(() => {
@@ -32,19 +31,38 @@ export function SettingsPage() {
     };
 
     useEffect(() => {
-        checkOllamaStatus();
-        loadModels();
+        checkAiStatus();
     }, []);
 
-    const handleHostChange = () => {
-        setOllamaHost(hostInput.trim());
-        setTimeout(() => {
-            checkOllamaStatus();
-            loadModels();
-        }, 200);
+    const handleSaveApiKey = async () => {
+        const key = apiKeyInput.trim();
+        setKeyValidating(true);
+        setKeyValid(null);
+
+        if (!key) {
+            setOpenAIApiKey('');
+            setKeyValid(null);
+            setKeyValidating(false);
+            checkAiStatus();
+            return;
+        }
+
+        const valid = await validateOpenAIKey(key);
+        setKeyValid(valid);
+        setKeyValidating(false);
+
+        if (valid) {
+            setOpenAIApiKey(key);
+            checkAiStatus();
+        }
     };
 
     const supabaseOk = isSupabaseConfigured();
+    const openaiOk = isOpenAIConfigured();
+
+    const maskedKey = apiKeyInput
+        ? apiKeyInput.slice(0, 7) + '•'.repeat(Math.max(0, apiKeyInput.length - 11)) + apiKeyInput.slice(-4)
+        : '';
 
     return (
         <div className="main-content">
@@ -53,32 +71,6 @@ export function SettingsPage() {
                     <h1 className="page-title">Configurações</h1>
                     <p className="page-subtitle">Gerencie as configurações do Alenfinos Hub</p>
                 </div>
-
-                {/* Browser Mode Warning */}
-                {!isTauri() && (
-                    <div style={{
-                        marginBottom: '20px',
-                        padding: '16px 20px',
-                        background: 'rgba(245, 158, 11, 0.08)',
-                        borderRadius: 'var(--radius-lg)',
-                        border: '1px solid rgba(245, 158, 11, 0.25)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '12px',
-                    }}>
-                        <AlertTriangle size={20} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '2px' }} />
-                        <div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#f59e0b', marginBottom: '4px' }}>
-                                Modo Browser Detectado
-                            </div>
-                            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                                Você está rodando o app no navegador (<code style={{ background: 'var(--color-bg-hover)', padding: '1px 4px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>npm run dev</code>).
-                                O <strong>Chat com Ring</strong> funciona via HTTP direto, mas o <strong>upload de documentos</strong> é limitado.
-                                Para a experiência completa, use <code style={{ background: 'var(--color-bg-hover)', padding: '1px 4px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>npm run tauri dev</code>.
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Connection Status */}
                 <div className="card" style={{ marginBottom: '20px' }}>
@@ -109,7 +101,7 @@ export function SettingsPage() {
                                 <div>
                                     <div style={{ fontSize: '14px', fontWeight: 600 }}>Supabase (Intranet)</div>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                                        {supabaseOk ? 'Conectado — dados sincronizados entre PCs' : 'Não configurado — dados em memória'}
+                                        {supabaseOk ? 'Conectado — dados sincronizados entre PCs' : 'Não configurado — dados locais'}
                                     </div>
                                 </div>
                             </div>
@@ -125,84 +117,53 @@ export function SettingsPage() {
                             </div>
                         </div>
 
-                        {/* Ollama Status */}
+                        {/* OpenAI Status */}
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '14px 16px',
-                            background: ollamaStatus === 'online'
+                            background: openaiOk
                                 ? 'rgba(34, 197, 94, 0.06)'
                                 : 'rgba(239, 68, 68, 0.06)',
                             borderRadius: 'var(--radius-md)',
-                            border: `1px solid ${ollamaStatus === 'online' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`,
+                            border: `1px solid ${openaiOk ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`,
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Bot size={18} style={{ color: ollamaStatus === 'online' ? 'var(--color-success)' : 'var(--color-error)' }} />
+                                <Bot size={18} style={{ color: openaiOk ? 'var(--color-success)' : 'var(--color-error)' }} />
                                 <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 600 }}>Ollama (Ring IA)</div>
+                                    <div style={{ fontSize: '14px', fontWeight: 600 }}>OpenAI (Ring IA)</div>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                                        {ollamaStatus === 'online' ? `Conectado em ${ollamaHost}` : 'Desconectado'}
+                                        {openaiOk ? `Configurada · Modelo: ${aiModel}` : 'API Key não configurada'}
                                     </div>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div className={`status-dot ${ollamaStatus === 'online' ? 'online' : 'offline'}`} />
+                                <div className={`status-dot ${openaiOk ? 'online' : 'offline'}`} />
                                 <span style={{
                                     fontSize: '13px',
                                     fontWeight: 500,
-                                    color: ollamaStatus === 'online' ? 'var(--color-success)' : 'var(--color-error)',
+                                    color: openaiOk ? 'var(--color-success)' : 'var(--color-error)',
                                 }}>
-                                    {ollamaStatus === 'online' ? 'Online' : 'Offline'}
+                                    {openaiOk ? 'Ativa' : 'Inativa'}
                                 </span>
                             </div>
                         </div>
                     </div>
-
-                    {!supabaseOk && (
-                        <div style={{
-                            marginTop: '12px',
-                            padding: '14px',
-                            background: 'rgba(245, 158, 11, 0.08)',
-                            borderRadius: 'var(--radius-md)',
-                            border: '1px solid rgba(245, 158, 11, 0.2)',
-                        }}>
-                            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                                Para ativar a intranet, crie um arquivo <code style={{
-                                    background: 'var(--color-bg-hover)',
-                                    padding: '2px 6px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontSize: '12px',
-                                }}>.env</code> na raiz do projeto com:
-                                <br /><br />
-                                <code style={{
-                                    display: 'block',
-                                    background: 'var(--color-bg-tertiary)',
-                                    padding: '10px 14px',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontSize: '12px',
-                                    lineHeight: 1.8,
-                                }}>
-                                    VITE_SUPABASE_URL=https://seu-projeto.supabase.co<br />
-                                    VITE_SUPABASE_ANON_KEY=sua-anon-key
-                                </code>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
-                {/* Ollama Config */}
+                {/* OpenAI API Key Config */}
                 <div className="card" style={{ marginBottom: '20px' }}>
                     <div className="card-header">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div className="stat-icon purple">
-                                <Server size={20} />
+                                <Key size={20} />
                             </div>
-                            <h2 className="card-title">Servidor Ollama</h2>
+                            <h2 className="card-title">OpenAI — API Key</h2>
                         </div>
                     </div>
 
-                    {/* Host */}
+                    {/* API Key Input */}
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{
                             display: 'block',
@@ -211,32 +172,88 @@ export function SettingsPage() {
                             color: 'var(--color-text-secondary)',
                             marginBottom: '8px',
                         }}>
-                            Endereço do Ollama
+                            Chave de API da OpenAI
                         </label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <input
-                                className="input"
-                                value={hostInput}
-                                onChange={(e) => setHostInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleHostChange()}
-                                placeholder="localhost:11434"
-                                style={{ maxWidth: '300px' }}
-                            />
-                            <button className="btn btn-secondary" onClick={handleHostChange}>
-                                Conectar
+                            <div style={{ position: 'relative', flex: 1, maxWidth: '420px' }}>
+                                <input
+                                    className="input"
+                                    type={showKey ? 'text' : 'password'}
+                                    value={apiKeyInput}
+                                    onChange={(e) => { setApiKeyInput(e.target.value); setKeyValid(null); }}
+                                    placeholder="sk-proj-..."
+                                    style={{ paddingRight: '40px' }}
+                                />
+                                <button
+                                    onClick={() => setShowKey(!showKey)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: 'var(--color-text-tertiary)',
+                                        padding: '4px',
+                                    }}
+                                >
+                                    {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleSaveApiKey}
+                                disabled={keyValidating}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                            >
+                                {keyValidating ? (
+                                    <>
+                                        <div style={{
+                                            width: '14px',
+                                            height: '14px',
+                                            border: '2px solid rgba(255,255,255,0.3)',
+                                            borderTopColor: 'white',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.8s linear infinite',
+                                        }} />
+                                        Validando...
+                                    </>
+                                ) : 'Salvar'}
                             </button>
                         </div>
-                        <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', marginTop: '6px' }}>
-                            Se o Ollama roda no PC da Isis, use o IP dela. Ex: <code style={{
-                                background: 'var(--color-bg-hover)',
-                                padding: '1px 4px',
-                                borderRadius: 'var(--radius-sm)',
-                                fontSize: '11px',
-                            }}>192.168.1.100:11434</code>
+
+                        {/* Validation result */}
+                        {keyValid !== null && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                marginTop: '8px',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                color: keyValid ? 'var(--color-success)' : 'var(--color-error)',
+                            }}>
+                                {keyValid ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                {keyValid ? 'API Key válida e salva com sucesso!' : 'API Key inválida. Verifique e tente novamente.'}
+                            </div>
+                        )}
+
+                        <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', marginTop: '8px', lineHeight: 1.5 }}>
+                            Obtenha sua chave em{' '}
+                            <a
+                                href="https://platform.openai.com/api-keys"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: 'var(--color-accent-secondary)', textDecoration: 'underline' }}
+                            >
+                                platform.openai.com/api-keys
+                            </a>
+                            . Sua chave fica salva apenas localmente neste dispositivo.
                         </p>
                     </div>
 
-                    {/* Model */}
+                    {/* Model Selection */}
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{
                             display: 'block',
@@ -245,63 +262,87 @@ export function SettingsPage() {
                             color: 'var(--color-text-secondary)',
                             marginBottom: '8px',
                         }}>
-                            Modelo ativo
+                            Modelo de IA
                         </label>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <select
-                                className="input"
-                                value={ollamaModel}
-                                onChange={(e) => setOllamaModel(e.target.value)}
-                                style={{ cursor: 'pointer', maxWidth: '300px' }}
-                            >
-                                {availableModels.length > 0 ? (
-                                    availableModels.map((m) => (
-                                        <option key={m} value={m}>{m}</option>
-                                    ))
-                                ) : (
-                                    <option value={ollamaModel}>{ollamaModel}</option>
-                                )}
-                            </select>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => { checkOllamaStatus(); loadModels(); }}
-                            >
-                                <RefreshCw size={14} /> Atualizar
-                            </button>
+                        <select
+                            className="input"
+                            value={aiModel}
+                            onChange={(e) => setAiModel(e.target.value)}
+                            style={{ cursor: 'pointer', maxWidth: '420px' }}
+                        >
+                            {OPENAI_MODELS.map((m) => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Models Info */}
+                <div className="card" style={{ marginBottom: '20px' }}>
+                    <div className="card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="stat-icon blue">
+                                <Cpu size={20} />
+                            </div>
+                            <h2 className="card-title">Modelos Disponíveis</h2>
                         </div>
                     </div>
 
-                    {ollamaStatus === 'offline' && (
-                        <div style={{
-                            padding: '14px',
-                            background: 'rgba(239, 68, 68, 0.08)',
-                            borderRadius: 'var(--radius-md)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                        }}>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-error)', marginBottom: '8px' }}>
-                                Ollama não está rodando
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                        {OPENAI_MODELS.map((model) => (
+                            <div
+                                key={model.id}
+                                onClick={() => setAiModel(model.id)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '12px 14px',
+                                    background: aiModel === model.id
+                                        ? 'rgba(139, 92, 246, 0.08)'
+                                        : 'var(--color-bg-tertiary)',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: aiModel === model.id
+                                        ? '1px solid rgba(139, 92, 246, 0.25)'
+                                        : '1px solid transparent',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                }}
+                            >
+                                <div>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        color: aiModel === model.id
+                                            ? 'var(--color-accent-primary)'
+                                            : 'var(--color-text-primary)',
+                                        marginBottom: '2px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                    }}>
+                                        {model.name}
+                                        {aiModel === model.id && (
+                                            <span style={{
+                                                fontSize: '10px',
+                                                padding: '2px 6px',
+                                                borderRadius: 'var(--radius-full)',
+                                                background: 'var(--color-accent-primary)',
+                                                color: 'white',
+                                                fontWeight: 700,
+                                            }}>
+                                                ATIVO
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                        {model.desc}
+                                    </div>
+                                </div>
+                                <span className="badge blue">{model.price}</span>
                             </div>
-                            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                                Para usar a Ring, inicie o Ollama:
-                                <br /><br />
-                                <code style={{
-                                    background: 'var(--color-bg-hover)',
-                                    padding: '4px 8px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontSize: '12px',
-                                }}>ollama serve</code>
-                                <br /><br />
-                                E baixe um modelo:
-                                <br /><br />
-                                <code style={{
-                                    background: 'var(--color-bg-hover)',
-                                    padding: '4px 8px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontSize: '12px',
-                                }}>ollama pull llama3.2</code>
-                            </div>
-                        </div>
-                    )}
+                        ))}
+                    </div>
                 </div>
 
                 {/* Profile Instructions */}
@@ -317,7 +358,7 @@ export function SettingsPage() {
 
                     <div style={{ marginBottom: '16px' }}>
                         <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>
-                            Forneça regras, contexto e formato de resposta para a Ring agir ao conversar no perfil <strong>{activeWorkspace.displayName}</strong>. Funciona como as custom instructions/projetos de outras IAs.
+                            Forneça regras, contexto e formato de resposta para a Ring agir ao conversar no perfil <strong>{activeWorkspace.displayName}</strong>. Funciona como as custom instructions de outras IAs.
                         </p>
                         <textarea
                             className="input"
@@ -334,49 +375,6 @@ export function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Models Info */}
-                <div className="card" style={{ marginBottom: '20px' }}>
-                    <div className="card-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div className="stat-icon blue">
-                                <Cpu size={20} />
-                            </div>
-                            <h2 className="card-title">Modelos Recomendados</h2>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '10px' }}>
-                        {[
-                            { name: 'llama3.2', desc: 'Llama 3.2 3B — Rápido, boa qualidade. Ideal para uso geral.', size: '~2GB' },
-                            { name: 'mistral', desc: 'Mistral 7B — Excelente qualidade, mais lento em PCs modestos.', size: '~4GB' },
-                            { name: 'gemma2:2b', desc: 'Gemma 2B — Ultra leve, ideal para PCs com pouca RAM.', size: '~1.4GB' },
-                            { name: 'llama3.1:8b', desc: 'Llama 3.1 8B — Melhor qualidade, requer 8GB+ de RAM.', size: '~4.7GB' },
-                        ].map((model) => (
-                            <div
-                                key={model.name}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '12px 14px',
-                                    background: 'var(--color-bg-tertiary)',
-                                    borderRadius: 'var(--radius-md)',
-                                }}
-                            >
-                                <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '2px' }}>
-                                        {model.name}
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                                        {model.desc}
-                                    </div>
-                                </div>
-                                <span className="badge blue">{model.size}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
                 {/* About */}
                 <div className="card">
                     <div className="card-header">
@@ -384,14 +382,14 @@ export function SettingsPage() {
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
                         <p>
-                            <strong style={{ color: 'var(--color-text-primary)' }}>Alenfinos Hub</strong> v0.2.0
+                            <strong style={{ color: 'var(--color-text-primary)' }}>Alenfinos Hub</strong> v0.3.0
                         </p>
                         <p>
                             Intranet familiar com assistente de IA.{' '}
                             <span style={{ color: 'var(--color-accent-secondary)' }}>Tauri v2</span> +{' '}
                             <span style={{ color: 'var(--color-accent-secondary)' }}>React</span> +{' '}
                             <span style={{ color: 'var(--color-accent-secondary)' }}>Supabase</span> +{' '}
-                            <span style={{ color: 'var(--color-accent-secondary)' }}>Ollama</span>
+                            <span style={{ color: 'var(--color-accent-secondary)' }}>OpenAI</span>
                         </p>
                         <p>Seus dados ficam sincronizados entre os PCs da família. 🏠</p>
                     </div>
