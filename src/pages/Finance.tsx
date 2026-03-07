@@ -61,7 +61,7 @@ export function Finance() {
         const prompt = `Você atua como um educador financeiro empático e cirúrgico da Família Alenfinos. Baseado nos dados exatos atuais da família, apresente um diagnóstico claro sobre a saúde financeira. Faça críticas construtivas e aponte riscos.
 Renda Total: ${formatCurrency(totalRenda)}
 Renda Composição: ${store.entradas.map(s => s.name + ' - ' + formatCurrency(s.value)).join(', ')}
-Despesas Fixas Mensais: ${formatCurrency(totalFixo)}
+Despesas Fixas Mensais Pendentes: ${formatCurrency(totalFixo)}
 Custos com Assinaturas/Parcelamentos (Cartões): ${formatCurrency(totalCreditos)} (${store.creditos.map(p => p.name + '...').join('; ')})
 Dívidas Totais Angélica: ${formatCurrency(totalDivAngelica)}
 Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
@@ -71,7 +71,7 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
     };
 
     const totalRenda = store.entradas.reduce((a, b) => a + b.value, 0);
-    const totalFixo = store.fixoMensal.reduce((a, b) => a + b.value, 0);
+    const totalFixo = store.fixoMensal.filter(f => !f.paid).reduce((a, b) => a + b.value, 0);
     const totalCreditos = store.creditos.reduce((a, b) => a + b.value, 0);
     const totalProblemas = store.problemas.reduce((a, b) => a + b.total, 0);
 
@@ -223,7 +223,7 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
                                 ))}
 
                                 <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                                    <span>TOTAL SAÍDAS (Débito + Crédito)</span><span style={{ color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixo + totalCreditos)}</span>
+                                    <span>TOTAL SAÍDAS PENDENTES (Débito + Crédito)</span><span style={{ color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixo + totalCreditos)}</span>
                                 </div>
                             </div>
                         </div>
@@ -278,12 +278,33 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
 
                                             const isToday = new Date().getDate() === d.dia && new Date().getMonth() + 1 === parseInt(selectedMonth.split('-')[0]);
 
+                                            // Handle projected values for thermometer
+                                            let projectedSaida = sStr;
+                                            let projectedColor = 'var(--color-error)';
+
+                                            // Se for no futuro e não tivermos preenchido nada, projetamos uma estimativa de diário de 100 reais
+                                            const isFuture = index + 1 > new Date().getDate();
+                                            if (isFuture && d.saida === null && d.diario === null && d.entrada === null) {
+                                                projectedSaida = '100';
+                                                projectedColor = 'var(--color-text-tertiary)';
+                                                s -= 100; // Deduct the projected 100 recursively in UI
+                                            }
+
+                                            // Simulate receiving the income on the 5th working day (or day 5 for simplicity for now)
+                                            let projectedEntrada = eStr;
+                                            let projectedEntradaColor = 'var(--color-success)';
+                                            if (isFuture && index === 4 && d.entrada === null) {
+                                                projectedEntrada = totalRenda.toString();
+                                                projectedEntradaColor = 'var(--color-text-tertiary)';
+                                                s += totalRenda;
+                                            }
+
                                             return (
                                                 <tr key={index} style={{ background: isToday ? 'rgba(79,138,255,0.05)' : 'transparent', borderLeft: isToday ? '3px solid var(--color-accent-primary)' : '3px solid transparent' }}>
                                                     <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-text-secondary)' }}>{d.dia}</td>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={eStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'entrada', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-success)' }} /></td>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={projectedEntrada !== eStr ? projectedEntrada : eStr} placeholder={projectedEntrada !== eStr ? projectedEntrada : ''} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'entrada', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: projectedEntradaColor }} /></td>
                                                     <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={sStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'saida', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-error)' }} /></td>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={diStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'diario', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-warning)' }} /></td>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={projectedSaida !== sStr ? projectedSaida : diStr} placeholder={projectedSaida !== sStr ? projectedSaida : ''} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'diario', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: projectedColor }} /></td>
                                                     <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: s >= 0 ? 'var(--color-accent-primary)' : 'var(--color-error)' }}>{formatCurrency(s)}</td>
                                                 </tr>
                                             )
