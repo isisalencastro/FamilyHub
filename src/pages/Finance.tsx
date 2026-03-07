@@ -72,13 +72,13 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
 
     const totalRenda = store.entradas.reduce((a, b) => a + b.value, 0);
     const totalFixo = store.fixoMensal.filter(f => !f.paid).reduce((a, b) => a + b.value, 0);
-    const totalCreditos = store.creditos.reduce((a, b) => a + b.value, 0);
-    const totalProblemas = store.problemas.reduce((a, b) => a + b.total, 0);
+    const totalCreditos = store.creditos.filter(c => !c.paid).reduce((a, b) => a + b.value, 0);
+    const totalProblemas = store.problemas.filter(p => !p.paid).reduce((a, b) => a + b.total, 0);
 
     const saldoLivreReal = totalRenda - totalFixo - totalCreditos - totalProblemas;
 
-    const totalDivAngelica = store.dividasAngelica.reduce((a, b) => a + b.total, 0);
-    const totalDivIsis = store.dividasIsis.reduce((a, b) => a + b.total, 0);
+    const totalDivAngelica = store.dividasAngelica.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
+    const totalDivIsis = store.dividasIsis.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
 
     const termometroMes = store.termometroFiles[selectedMonth];
     const thermMonths = Object.keys(store.termometroFiles).sort();
@@ -203,15 +203,20 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
 
                                 {store.creditos.map(c => (
                                     <div key={c.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', background: c.congelado ? 'rgba(245, 158, 11, 0.05)' : 'transparent' }}>
-                                        <div>
-                                            <div style={{ fontSize: 14, fontWeight: 500, color: c.congelado ? 'var(--color-warning)' : 'var(--color-text-primary)' }}>
-                                                {c.congelado && '⚠️ '} {c.name}
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleCreditoPaid(c.id)}>
+                                            <div style={{ marginTop: 2 }}>
+                                                {c.paid ? <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />}
                                             </div>
-                                            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                                                <span style={{ fontSize: 10, background: 'rgba(124,92,252,0.12)', color: 'var(--color-accent-secondary)', padding: '2px 6px', borderRadius: 4 }}>{c.type.toUpperCase()}</span>
-                                                {c.progresso && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', padding: '2px 6px', borderRadius: 4 }}>{c.progresso}</span>}
-                                                {c.isEvelise && <span style={{ fontSize: 10, background: 'rgba(239, 68, 68, 0.12)', color: 'var(--color-error)', padding: '2px 6px', borderRadius: 4 }}>EVELISE</span>}
-                                                {c.congelado && <span style={{ fontSize: 10, background: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)', padding: '2px 6px', borderRadius: 4 }}>CONGELADO</span>}
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: c.paid ? 400 : 500, color: c.paid ? 'var(--color-text-tertiary)' : (c.congelado ? 'var(--color-warning)' : 'var(--color-text-primary)') }}>
+                                                    {c.congelado && '⚠️ '} {c.name} {c.paid && <span style={{ fontSize: 11, marginLeft: 4, color: 'var(--color-success)' }}>- Pago</span>}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                                    <span style={{ fontSize: 10, background: 'rgba(124,92,252,0.12)', color: 'var(--color-accent-secondary)', padding: '2px 6px', borderRadius: 4 }}>{c.type.toUpperCase()}</span>
+                                                    {c.progresso && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', padding: '2px 6px', borderRadius: 4 }}>{c.progresso}</span>}
+                                                    {c.isEvelise && <span style={{ fontSize: 10, background: 'rgba(239, 68, 68, 0.12)', color: 'var(--color-error)', padding: '2px 6px', borderRadius: 4 }}>EVELISE</span>}
+                                                    {c.congelado && <span style={{ fontSize: 10, background: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)', padding: '2px 6px', borderRadius: 4 }}>CONGELADO</span>}
+                                                </div>
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -267,48 +272,56 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {termometroMes.dias.map((d, index) => {
-                                            const eStr = d.entrada !== null ? d.entrada.toString() : '';
-                                            const sStr = d.saida !== null ? d.saida.toString() : '';
-                                            const diStr = d.diario !== null ? d.diario.toString() : '';
+                                        {(() => {
+                                            let accumulatedSaldo = termometroMes.saldoInicial;
 
-                                            // Progressive saldo calc for rendering
-                                            let s = termometroMes.saldoInicial;
-                                            for (let i = 0; i <= index; i++) s += (termometroMes.dias[i].entrada || 0) - ((termometroMes.dias[i].saida || 0) + (termometroMes.dias[i].diario || 0));
+                                            return termometroMes.dias.map((d, index) => {
+                                                const eStr = d.entrada !== null ? d.entrada.toString() : '';
+                                                const sStr = d.saida !== null ? d.saida.toString() : '';
+                                                const diStr = d.diario !== null ? d.diario.toString() : '';
 
-                                            const isToday = new Date().getDate() === d.dia && new Date().getMonth() + 1 === parseInt(selectedMonth.split('-')[0]);
+                                                const isToday = new Date().getDate() === d.dia && new Date().getMonth() + 1 === parseInt(selectedMonth.split('-')[0]);
 
-                                            // Handle projected values for thermometer
-                                            let projectedSaida = sStr;
-                                            let projectedColor = 'var(--color-error)';
+                                                // Handle projected values for thermometer
+                                                let projectedSaida = sStr;
+                                                let projectedColor = 'var(--color-error)';
 
-                                            // Se for no futuro e não tivermos preenchido nada, projetamos uma estimativa de diário de 100 reais
-                                            const isFuture = index + 1 > new Date().getDate();
-                                            if (isFuture && d.saida === null && d.diario === null && d.entrada === null) {
-                                                projectedSaida = '100';
-                                                projectedColor = 'var(--color-text-tertiary)';
-                                                s -= 100; // Deduct the projected 100 recursively in UI
-                                            }
+                                                let valEntrada = d.entrada || 0;
+                                                let valSaida = d.saida || 0;
+                                                let valDiario = d.diario || 0;
 
-                                            // Simulate receiving the income on the 5th working day (or day 5 for simplicity for now)
-                                            let projectedEntrada = eStr;
-                                            let projectedEntradaColor = 'var(--color-success)';
-                                            if (isFuture && index === 4 && d.entrada === null) {
-                                                projectedEntrada = totalRenda.toString();
-                                                projectedEntradaColor = 'var(--color-text-tertiary)';
-                                                s += totalRenda;
-                                            }
+                                                // Se for no futuro e não tivermos preenchido nada, projetamos uma estimativa de diário de 100 reais
+                                                const isThisMonth = new Date().getMonth() + 1 === parseInt(selectedMonth.split('-')[0]);
+                                                const isFuture = isThisMonth ? (index + 1 > new Date().getDate()) : (new Date().getMonth() + 1 < parseInt(selectedMonth.split('-')[0]));
 
-                                            return (
-                                                <tr key={index} style={{ background: isToday ? 'rgba(79,138,255,0.05)' : 'transparent', borderLeft: isToday ? '3px solid var(--color-accent-primary)' : '3px solid transparent' }}>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-text-secondary)' }}>{d.dia}</td>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={projectedEntrada !== eStr ? projectedEntrada : eStr} placeholder={projectedEntrada !== eStr ? projectedEntrada : ''} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'entrada', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: projectedEntradaColor }} /></td>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={sStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'saida', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-error)' }} /></td>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={projectedSaida !== sStr ? projectedSaida : diStr} placeholder={projectedSaida !== sStr ? projectedSaida : ''} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'diario', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: projectedColor }} /></td>
-                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: s >= 0 ? 'var(--color-accent-primary)' : 'var(--color-error)' }}>{formatCurrency(s)}</td>
-                                                </tr>
-                                            )
-                                        })}
+                                                if (isFuture && d.saida === null && d.diario === null && d.entrada === null) {
+                                                    projectedSaida = '100';
+                                                    projectedColor = 'var(--color-text-tertiary)';
+                                                    valDiario = 100;
+                                                }
+
+                                                // Simulate receiving the income on the 5th working day (or day 5 for simplicity for now)
+                                                let projectedEntrada = eStr;
+                                                let projectedEntradaColor = 'var(--color-success)';
+                                                if (isFuture && index === 4 && d.entrada === null) {
+                                                    projectedEntrada = totalRenda.toString();
+                                                    projectedEntradaColor = 'var(--color-text-tertiary)';
+                                                    valEntrada = totalRenda;
+                                                }
+
+                                                accumulatedSaldo += valEntrada - (valSaida + valDiario);
+
+                                                return (
+                                                    <tr key={index} style={{ background: isToday ? 'rgba(79,138,255,0.05)' : 'transparent', borderLeft: isToday ? '3px solid var(--color-accent-primary)' : '3px solid transparent' }}>
+                                                        <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-text-secondary)' }}>{d.dia}</td>
+                                                        <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={projectedEntrada !== eStr ? '' : eStr} placeholder={projectedEntrada !== eStr ? projectedEntrada : ''} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'entrada', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: projectedEntradaColor }} /></td>
+                                                        <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={sStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'saida', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-error)' }} /></td>
+                                                        <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={projectedSaida !== sStr ? '' : diStr} placeholder={projectedSaida !== sStr ? projectedSaida : ''} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'diario', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: projectedColor }} /></td>
+                                                        <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: accumulatedSaldo >= 0 ? 'var(--color-accent-primary)' : 'var(--color-error)' }}>{formatCurrency(accumulatedSaldo)}</td>
+                                                    </tr>
+                                                )
+                                            });
+                                        })()}
                                         <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
                                             <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>TOTAIS</td>
                                             <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-success)' }}>{formatCurrency(termEntradas)}</td>
@@ -337,13 +350,20 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
                             </div>
                             <div className="task-list">
                                 {store.problemas.map(p => (
-                                    <div key={p.id} className="task-item" style={{ justifyContent: 'space-between', padding: '12px 16px', borderLeft: '3px solid var(--color-error)', background: 'rgba(239, 68, 68, 0.05)' }}>
-                                        <div>
-                                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{p.name}</div>
-                                            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>
-                                                {p.desc}
-                                                {p.encerraEm && <span style={{ marginLeft: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>Até: {p.encerraEm}</span>}
-                                                {p.status && <span style={{ marginLeft: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>Progresso: {p.status}</span>}
+                                    <div key={p.id} className="task-item" style={{ justifyContent: 'space-between', padding: '12px 16px', borderLeft: '3px solid var(--color-error)', background: 'rgba(239, 68, 68, 0.05)', opacity: p.paid ? 0.6 : 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }} onClick={() => store.toggleProblemaPaid(p.id)}>
+                                            <div style={{ marginTop: 2 }}>
+                                                {p.paid ? <CheckCircle2 size={18} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--color-error)' }} />}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: p.paid ? 400 : 600, color: p.paid ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)' }}>
+                                                    {p.name} {p.paid && <span style={{ fontSize: 12, marginLeft: 6, color: 'var(--color-success)' }}>(Resolvido este mês)</span>}
+                                                </div>
+                                                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                                                    {p.desc}
+                                                    {p.encerraEm && <span style={{ marginLeft: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>Até: {p.encerraEm}</span>}
+                                                    {p.status && <span style={{ marginLeft: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>Progresso: {p.status}</span>}
+                                                </div>
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -365,10 +385,17 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
                             </div>
                             <div className="task-list">
                                 {store.dividasAngelica.map(d => (
-                                    <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
-                                        <div>
-                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{d.name}</div>
-                                            {d.desc && <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{d.desc}</div>}
+                                    <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', opacity: d.paid ? 0.6 : 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleDividaAngelicaPaid(d.id)}>
+                                            <div style={{ marginTop: 2 }}>
+                                                {d.paid ? <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: d.paid ? 400 : 500, color: d.paid ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)' }}>
+                                                    {d.name} {d.paid && <span style={{ fontSize: 11, marginLeft: 4, color: 'var(--color-success)' }}>- Pago</span>}
+                                                </div>
+                                                {d.desc && <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{d.desc}</div>}
+                                            </div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                             <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(d.total)}</span>
@@ -391,10 +418,17 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
                             </div>
                             <div className="task-list">
                                 {store.dividasIsis.map(d => (
-                                    <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
-                                        <div>
-                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{d.name}</div>
-                                            {d.desc && <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{d.desc}</div>}
+                                    <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', opacity: d.paid ? 0.6 : 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleDividaIsisPaid(d.id)}>
+                                            <div style={{ marginTop: 2 }}>
+                                                {d.paid ? <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: d.paid ? 400 : 500, color: d.paid ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)' }}>
+                                                    {d.name} {d.paid && <span style={{ fontSize: 11, marginLeft: 4, color: 'var(--color-success)' }}>- Pago</span>}
+                                                </div>
+                                                {d.desc && <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{d.desc}</div>}
+                                            </div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                             <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(d.total)}</span>

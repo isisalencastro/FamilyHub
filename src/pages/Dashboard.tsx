@@ -55,7 +55,7 @@ export function Dashboard() {
 
     // Calculate Dynamic Finance Summary for Family
     const staticFamilyIncome = famFinance.entradas.reduce((acc, c) => acc + c.value, 0);
-    const staticFamilyExpense = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0) + famFinance.creditos.reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.reduce((acc, c) => acc + c.total, 0);
+    const staticFamilyExpense = famFinance.fixoMensal.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0) + famFinance.creditos.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.filter(x => !x.paid).reduce((acc, c) => acc + c.total, 0);
 
     const displayIncome = isFamilia ? staticFamilyIncome : financeSummary.totalIncome;
     const displayExpense = isFamilia ? staticFamilyExpense : financeSummary.totalExpense;
@@ -237,8 +237,8 @@ export function Dashboard() {
 
                         {/* Mini Finance Bar Chart */}
                         {isFamilia && (() => {
-                            const fixoTotal = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0);
-                            const creditoTotal = famFinance.creditos.reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.reduce((acc, c) => acc + c.total, 0);
+                            const fixoTotal = famFinance.fixoMensal.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0);
+                            const creditoTotal = famFinance.creditos.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.filter(x => !x.paid).reduce((acc, c) => acc + c.total, 0);
                             const livre = Math.max(staticFamilyIncome - fixoTotal - creditoTotal, 0);
                             const maxVal = Math.max(staticFamilyIncome, fixoTotal + creditoTotal + livre, 1);
                             const bars = [

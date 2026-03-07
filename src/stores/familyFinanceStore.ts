@@ -24,6 +24,7 @@ export interface ParcelamentoItem {
     congelado: boolean;
     progresso: string; // Ex: "3/7"
     isEvelise: boolean;
+    paid?: boolean;
 }
 
 export interface DividaItem {
@@ -31,6 +32,7 @@ export interface DividaItem {
     name: string;
     total: number;
     desc: string;
+    paid?: boolean;
 }
 
 export interface ProblemaItem {
@@ -40,6 +42,7 @@ export interface ProblemaItem {
     desc: string;
     encerraEm: string;
     status: string;
+    paid?: boolean;
 }
 
 export interface DiaTermometro {
@@ -85,16 +88,21 @@ export interface FamilyFinanceState {
     addCredito: (item: Omit<ParcelamentoItem, 'id'>) => void;
     removeCredito: (id: string) => void;
     toggleCongelado: (id: string) => void;
+    toggleCreditoPaid: (id: string) => void;
 
     // CRUD Dividas
     addDividaAngelica: (item: Omit<DividaItem, 'id'>) => void;
     removeDividaAngelica: (id: string) => void;
+    toggleDividaAngelicaPaid: (id: string) => void;
+
     addDividaIsis: (item: Omit<DividaItem, 'id'>) => void;
     removeDividaIsis: (id: string) => void;
+    toggleDividaIsisPaid: (id: string) => void;
 
     // CRUD Problemas
     addProblema: (item: Omit<ProblemaItem, 'id'>) => void;
     removeProblema: (id: string) => void;
+    toggleProblemaPaid: (id: string) => void;
 
     // Calcular Saldo Final anterior para passar para o próximo mês
     getSaldoFinalMes: (mesAno: string) => number;
@@ -215,6 +223,10 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>()(
                         entradas: s.entradas.filter(e => e.isFixed),
                         // Keep fixed, and reset paid to false
                         fixoMensal: s.fixoMensal.filter(f => f.isFixed).map(f => ({ ...f, paid: false })),
+                        creditos: s.creditos.map(c => ({ ...c, paid: false })),
+                        problemas: s.problemas.map(p => ({ ...p, paid: false })),
+                        dividasAngelica: s.dividasAngelica.map(d => ({ ...d, paid: false })),
+                        dividasIsis: s.dividasIsis.map(d => ({ ...d, paid: false })),
 
                         // Initialize new thermometro month
                         termometroFiles: {
@@ -261,18 +273,22 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>()(
             removeFixo: (id) => set((s) => ({ fixoMensal: s.fixoMensal.filter(f => f.id !== id) })),
             toggleFixoPaid: (id) => set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, paid: !f.paid } : f) })),
 
-            addCredito: (item) => set((s) => ({ creditos: [...s.creditos, { ...item, id: generateId() }] })),
+            addCredito: (item) => set((s) => ({ creditos: [...s.creditos, { ...item, paid: false, id: generateId() }] })),
             removeCredito: (id) => set((s) => ({ creditos: s.creditos.filter(c => c.id !== id) })),
             toggleCongelado: (id) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, congelado: !c.congelado } : c) })),
+            toggleCreditoPaid: (id) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, paid: !c.paid } : c) })),
 
-            addDividaAngelica: (item) => set((s) => ({ dividasAngelica: [...s.dividasAngelica, { ...item, id: generateId() }] })),
+            addDividaAngelica: (item) => set((s) => ({ dividasAngelica: [...s.dividasAngelica, { ...item, paid: false, id: generateId() }] })),
             removeDividaAngelica: (id) => set((s) => ({ dividasAngelica: s.dividasAngelica.filter(d => d.id !== id) })),
+            toggleDividaAngelicaPaid: (id) => set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, paid: !d.paid } : d) })),
 
-            addDividaIsis: (item) => set((s) => ({ dividasIsis: [...s.dividasIsis, { ...item, id: generateId() }] })),
+            addDividaIsis: (item) => set((s) => ({ dividasIsis: [...s.dividasIsis, { ...item, paid: false, id: generateId() }] })),
             removeDividaIsis: (id) => set((s) => ({ dividasIsis: s.dividasIsis.filter(d => d.id !== id) })),
+            toggleDividaIsisPaid: (id) => set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, paid: !d.paid } : d) })),
 
-            addProblema: (item) => set((s) => ({ problemas: [...s.problemas, { ...item, id: generateId() }] })),
+            addProblema: (item) => set((s) => ({ problemas: [...s.problemas, { ...item, paid: false, id: generateId() }] })),
             removeProblema: (id) => set((s) => ({ problemas: s.problemas.filter(p => p.id !== id) })),
+            toggleProblemaPaid: (id) => set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, paid: !p.paid } : p) })),
         }),
         {
             name: 'family-finance-v2', // Change name to abandon old cache state and use the new initial seed
