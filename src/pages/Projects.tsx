@@ -3,18 +3,169 @@ import {
     Plus,
     FolderKanban,
     ArrowLeft,
-    MoreHorizontal,
     Trash2,
     GripVertical,
     ChevronRight,
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useProjectStore } from '@/stores/projectStore';
+import {
+    DndContext,
+    DragOverlay,
+    closestCorners,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragStartEvent,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useDroppable } from '@dnd-kit/core';
 
 const PROJECT_COLORS = [
     '#8b5cf6', '#3b82f6', '#06b6d4', '#22c55e',
     '#f59e0b', '#ec4899', '#ef4444', '#f97316',
 ];
+
+// ──── Draggable Card ────
+function DraggableCard({
+    card,
+    columnId,
+    projectId,
+    onDelete,
+    onMoveMenu,
+    moveMenuCard,
+    columns,
+    onMove,
+}: {
+    card: { id: string; title: string; description?: string; labels?: string[] };
+    columnId: string;
+    projectId: string;
+    onDelete: () => void;
+    onMoveMenu: () => void;
+    moveMenuCard: { cardId: string; columnId: string } | null;
+    columns: { id: string; title: string }[];
+    onMove: (toColumnId: string) => void;
+}) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: card.id,
+        data: { type: 'card', columnId },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        cursor: 'grab',
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="kanban-card" {...attributes}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', flex: 1 }}>
+                    <div
+                        {...listeners}
+                        style={{
+                            cursor: 'grab',
+                            color: 'var(--color-text-tertiary)',
+                            padding: '2px 0',
+                            flexShrink: 0,
+                            touchAction: 'none',
+                        }}
+                        title="Arraste para mover"
+                    >
+                        <GripVertical size={14} />
+                    </div>
+                    <div className="kanban-card-title">{card.title}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                    <button
+                        className="btn btn-ghost"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onMoveMenu();
+                        }}
+                        style={{ padding: '2px', color: 'var(--color-text-tertiary)' }}
+                    >
+                        <ChevronRight size={12} />
+                    </button>
+                    <button
+                        className="btn btn-ghost"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete();
+                        }}
+                        style={{ padding: '2px', color: 'var(--color-text-tertiary)' }}
+                    >
+                        <Trash2 size={12} />
+                    </button>
+                </div>
+            </div>
+            {card.description && (
+                <div className="kanban-card-desc">{card.description}</div>
+            )}
+            {card.labels && card.labels.length > 0 && (
+                <div className="kanban-card-labels">
+                    {card.labels.map((label) => (
+                        <span key={label} className="kanban-label">{label}</span>
+                    ))}
+                </div>
+            )}
+            {/* Move menu */}
+            {moveMenuCard?.cardId === card.id && (
+                <div className="kanban-move-menu">
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Mover para:
+                    </div>
+                    {columns
+                        .filter((c) => c.id !== columnId)
+                        .map((col) => (
+                            <button
+                                key={col.id}
+                                className="kanban-move-option"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onMove(col.id);
+                                }}
+                            >
+                                {col.title}
+                            </button>
+                        ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ──── Droppable Column ────
+function DroppableColumn({
+    columnId,
+    children,
+}: {
+    columnId: string;
+    children: React.ReactNode;
+}) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `column-${columnId}`,
+        data: { type: 'column', columnId },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className="kanban-cards"
+            style={{
+                minHeight: '60px',
+                background: isOver ? 'rgba(139, 92, 246, 0.05)' : undefined,
+                borderRadius: isOver ? 'var(--radius-md)' : undefined,
+                transition: 'background 0.2s ease',
+            }}
+        >
+            {children}
+        </div>
+    );
+}
 
 export function Projects() {
     const { activeWorkspace } = useWorkspaceStore();
@@ -47,6 +198,15 @@ export function Projects() {
 
     // Move card menu state
     const [moveMenuCard, setMoveMenuCard] = useState<{ cardId: string; columnId: string } | null>(null);
+
+    // DnD state
+    const [activeCard, setActiveCard] = useState<{ id: string; title: string; description?: string } | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 5 },
+        })
+    );
 
     const wsProjects = projects.filter((p) => p.workspaceId === activeWorkspace.id);
     const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -83,6 +243,50 @@ export function Projects() {
         if (!moveMenuCard || !selectedProjectId) return;
         moveCard(selectedProjectId, moveMenuCard.columnId, toColumnId, moveMenuCard.cardId);
         setMoveMenuCard(null);
+    };
+
+    // ── DnD Handlers ──
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        if (!selectedProject) return;
+
+        for (const col of selectedProject.columns) {
+            const card = col.cards.find((c) => c.id === active.id);
+            if (card) {
+                setActiveCard({ id: card.id, title: card.title, description: card.description });
+                break;
+            }
+        }
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        setActiveCard(null);
+        const { active, over } = event;
+        if (!over || !selectedProject || !selectedProjectId) return;
+
+        const activeData = active.data.current;
+        const overData = over.data.current;
+        if (!activeData) return;
+
+        const fromColumnId = activeData.columnId as string;
+        let toColumnId: string | null = null;
+
+        // Dropped on a column droppable
+        if (overData?.type === 'column') {
+            toColumnId = overData.columnId as string;
+        }
+        // Dropped on another card
+        else if (overData?.type === 'card') {
+            toColumnId = overData.columnId as string;
+        }
+        // Dropped on a column droppable ID like "column-xxx"
+        else if (typeof over.id === 'string' && over.id.startsWith('column-')) {
+            toColumnId = over.id.replace('column-', '');
+        }
+
+        if (toColumnId && toColumnId !== fromColumnId) {
+            moveCard(selectedProjectId, fromColumnId, toColumnId, active.id as string);
+        }
     };
 
     // Board View
@@ -162,96 +366,64 @@ export function Projects() {
                         </div>
                     )}
 
-                    {/* Kanban Board */}
-                    <div className="kanban-board">
-                        {selectedProject.columns.map((column) => (
-                            <div key={column.id} className="kanban-column">
-                                <div className="kanban-column-header">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span className="kanban-column-title">{column.title}</span>
-                                        <span className="kanban-column-count">{column.cards.length}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                        <button
-                                            className="btn btn-ghost"
-                                            onClick={() => setAddingCardInColumn(column.id)}
-                                            style={{ padding: '4px' }}
-                                        >
-                                            <Plus size={14} />
-                                        </button>
-                                        <button
-                                            className="btn btn-ghost"
-                                            onClick={() => {
-                                                if (confirm(`Deletar coluna "${column.title}" e todos os cards?`)) {
-                                                    deleteColumn(selectedProject.id, column.id);
-                                                }
-                                            }}
-                                            style={{ padding: '4px', color: 'var(--color-text-tertiary)' }}
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="kanban-cards">
-                                    {column.cards.map((card) => (
-                                        <div key={card.id} className="kanban-card">
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <div className="kanban-card-title">{card.title}</div>
-                                                <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
-                                                    <button
-                                                        className="btn btn-ghost"
-                                                        onClick={() =>
-                                                            setMoveMenuCard(
-                                                                moveMenuCard?.cardId === card.id
-                                                                    ? null
-                                                                    : { cardId: card.id, columnId: column.id }
-                                                            )
-                                                        }
-                                                        style={{ padding: '2px', color: 'var(--color-text-tertiary)' }}
-                                                    >
-                                                        <ChevronRight size={12} />
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-ghost"
-                                                        onClick={() => deleteCard(selectedProject.id, column.id, card.id)}
-                                                        style={{ padding: '2px', color: 'var(--color-text-tertiary)' }}
-                                                    >
-                                                        <Trash2 size={12} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            {card.description && (
-                                                <div className="kanban-card-desc">{card.description}</div>
-                                            )}
-                                            {card.labels && card.labels.length > 0 && (
-                                                <div className="kanban-card-labels">
-                                                    {card.labels.map((label) => (
-                                                        <span key={label} className="kanban-label">{label}</span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {/* Move menu */}
-                                            {moveMenuCard?.cardId === card.id && (
-                                                <div className="kanban-move-menu">
-                                                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                        Mover para:
-                                                    </div>
-                                                    {selectedProject.columns
-                                                        .filter((c) => c.id !== column.id)
-                                                        .map((col) => (
-                                                            <button
-                                                                key={col.id}
-                                                                className="kanban-move-option"
-                                                                onClick={() => handleMoveCard(col.id)}
-                                                            >
-                                                                {col.title}
-                                                            </button>
-                                                        ))}
-                                                </div>
-                                            )}
+                    {/* Kanban Board with DnD */}
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCorners}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div className="kanban-board">
+                            {selectedProject.columns.map((column) => (
+                                <div key={column.id} className="kanban-column">
+                                    <div className="kanban-column-header">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span className="kanban-column-title">{column.title}</span>
+                                            <span className="kanban-column-count">{column.cards.length}</span>
                                         </div>
-                                    ))}
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => setAddingCardInColumn(column.id)}
+                                                style={{ padding: '4px' }}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => {
+                                                    if (confirm(`Deletar coluna "${column.title}" e todos os cards?`)) {
+                                                        deleteColumn(selectedProject.id, column.id);
+                                                    }
+                                                }}
+                                                style={{ padding: '4px', color: 'var(--color-text-tertiary)' }}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <DroppableColumn columnId={column.id}>
+                                        {column.cards.map((card) => (
+                                            <DraggableCard
+                                                key={card.id}
+                                                card={card}
+                                                columnId={column.id}
+                                                projectId={selectedProject.id}
+                                                onDelete={() => deleteCard(selectedProject.id, column.id, card.id)}
+                                                onMoveMenu={() =>
+                                                    setMoveMenuCard(
+                                                        moveMenuCard?.cardId === card.id
+                                                            ? null
+                                                            : { cardId: card.id, columnId: column.id }
+                                                    )
+                                                }
+                                                moveMenuCard={moveMenuCard}
+                                                columns={selectedProject.columns}
+                                                onMove={handleMoveCard}
+                                            />
+                                        ))}
+                                    </DroppableColumn>
 
                                     {/* Add Card Form */}
                                     {addingCardInColumn === column.id && (
@@ -290,20 +462,40 @@ export function Projects() {
                                             </div>
                                         </div>
                                     )}
-                                </div>
 
-                                {/* Add card button at bottom */}
-                                {addingCardInColumn !== column.id && (
-                                    <button
-                                        className="kanban-add-card-btn"
-                                        onClick={() => setAddingCardInColumn(column.id)}
-                                    >
-                                        <Plus size={14} /> Adicionar card
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                                    {/* Add card button at bottom */}
+                                    {addingCardInColumn !== column.id && (
+                                        <button
+                                            className="kanban-add-card-btn"
+                                            onClick={() => setAddingCardInColumn(column.id)}
+                                        >
+                                            <Plus size={14} /> Adicionar card
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Drag Overlay */}
+                        <DragOverlay>
+                            {activeCard ? (
+                                <div
+                                    className="kanban-card"
+                                    style={{
+                                        boxShadow: '0 12px 24px rgba(0,0,0,0.25)',
+                                        transform: 'rotate(3deg)',
+                                        border: '2px solid var(--color-accent-primary)',
+                                        width: '260px',
+                                    }}
+                                >
+                                    <div className="kanban-card-title">{activeCard.title}</div>
+                                    {activeCard.description && (
+                                        <div className="kanban-card-desc">{activeCard.description}</div>
+                                    )}
+                                </div>
+                            ) : null}
+                        </DragOverlay>
+                    </DndContext>
                 </div>
             </div>
         );

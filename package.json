@@ -1,5 +1,5 @@
 {
-  "name": "ringai",
+  "name": "alenfinos-hub",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,9 +8,13 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "build:app": "tauri build && node -e \"require('fs').copyFileSync('src-tauri/target/release/bundle/nsis/Alenfinos Hub_0.1.0_x64-setup.exe', 'Alenfinos Hub_0.1.0_x64-setup.exe')\"",
     "test": "vitest"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.98.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.6.0",

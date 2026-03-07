@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { invoke } from '@tauri-apps/api/core';
+import { checkOllamaStatus as checkOllama, listOllamaModels, chatWithOllama } from '@/lib/ollamaClient';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { ChatMessage, Conversation, Memory } from '@/types';
 
@@ -249,7 +249,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             let responseContent: string;
 
             try {
-                responseContent = await invoke<string>('chat_with_ollama', {
+                responseContent = await chatWithOllama({
                     model: get().ollamaModel,
                     messages: ollamaMessages,
                     systemPrompt,
@@ -305,9 +305,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     checkOllamaStatus: async () => {
         set({ ollamaStatus: 'checking' });
         try {
-            const isOnline = await invoke<boolean>('check_ollama_status', {
-                ollamaHost: get().ollamaHost,
-            });
+            const isOnline = await checkOllama(get().ollamaHost);
             set({ ollamaStatus: isOnline ? 'online' : 'offline' });
         } catch {
             set({ ollamaStatus: 'offline' });
@@ -316,9 +314,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     loadModels: async () => {
         try {
-            const models = await invoke<string[]>('list_ollama_models', {
-                ollamaHost: get().ollamaHost,
-            });
+            const models = await listOllamaModels(get().ollamaHost);
             set({ availableModels: models });
             if (models.length > 0 && !models.includes(get().ollamaModel)) {
                 set({ ollamaModel: models[0] });
@@ -362,10 +358,38 @@ function extractMemories(
     get: any
 ) {
     const memoryPatterns = [
-        { regex: /(?:eu gosto|adoro|amo|prefiro)\s+(.+)/i, category: 'preference' as const },
-        { regex: /(?:meu|minha)\s+(?:nome|aniversário|idade)\s+(?:é|será)\s+(.+)/i, category: 'fact' as const },
-        { regex: /(?:preciso|tenho que|devo)\s+(.+)/i, category: 'task' as const },
+        // Preferences
+        { regex: /(?:eu gosto|adoro|amo|prefiro|curto)\s+(.+)/i, category: 'preference' as const },
+        { regex: /(?:não gosto|odeio|detesto|não curto)\s+(.+)/i, category: 'preference' as const },
+        { regex: /(?:minha comida|meu prato|minha cor|meu filme|meu livro|minha música)\s+(?:favorit[oa]|preferid[oa])?\s*(?:é|:)\s+(.+)/i, category: 'preference' as const },
+        // Personal facts
+        { regex: /(?:meu|minha)\s+(?:nome|aniversário|idade|signo)\s+(?:é|será|vai ser)\s+(.+)/i, category: 'fact' as const },
+        { regex: /(?:eu tenho|estou com)\s+(\d+)\s+anos/i, category: 'fact' as const },
+        { regex: /(?:eu moro|a gente mora|moramos)\s+(?:em|no|na)\s+(.+)/i, category: 'fact' as const },
+        { regex: /(?:eu trabalho|trabalho)\s+(?:em|no|na|com)\s+(.+)/i, category: 'fact' as const },
+        // Health & Allergies
+        { regex: /(?:sou alérgic[oa]|tenho alergia)\s+(?:a|de)\s+(.+)/i, category: 'fact' as const },
+        { regex: /(?:tomo|uso)\s+(?:o|a)?\s*(?:remédio|medicamento|medicação)\s+(.+)/i, category: 'fact' as const },
+        // Important dates
+        { regex: /(?:aniversário|niver)\s+(?:d[oa]|é\s+(?:dia|em))\s+(.+)/i, category: 'fact' as const },
+        { regex: /(?:a consulta|o compromisso|a reunião)\s+(?:é|vai ser)\s+(?:dia|em|no dia)\s+(.+)/i, category: 'task' as const },
+        // Tasks & reminders
+        { regex: /(?:preciso|tenho que|devo|não posso esquecer)\s+(?:de\s+)?(.+)/i, category: 'task' as const },
+        { regex: /(?:me lembra|lembre-me|lembra-me)\s+(?:de\s+)?(.+)/i, category: 'task' as const },
+        { regex: /(?:amanhã|semana que vem|mês que vem|depois)\s+(?:tenho|preciso|vou)\s+(.+)/i, category: 'task' as const },
+        // Financial
+        { regex: /(?:meu salário|ganho|recebo)\s+(?:é\s+(?:de\s+)?)?(?:R\$\s*)?(\d[\d.,]*)/i, category: 'fact' as const },
+        // Family
+        { regex: /(?:a angélica|a isis|o breno|a mãe|o pai)\s+(?:gosta|adora|não gosta|prefere)\s+(.+)/i, category: 'preference' as const },
+        { regex: /(?:nosso pet|nosso gato|nosso cachorro|nosso animal)\s+(?:se chama|é)\s+(.+)/i, category: 'fact' as const },
     ];
+
+    // Deduplicate: don't save memories that match existing content
+    const existingMemories = get().memories.filter((m: Memory) => m.workspaceId === workspaceId);
+    const isDuplicate = existingMemories.some((m: Memory) =>
+        m.content.toLowerCase().trim() === userMessage.toLowerCase().trim()
+    );
+    if (isDuplicate) return;
 
     for (const pattern of memoryPatterns) {
         const match = userMessage.match(pattern.regex);

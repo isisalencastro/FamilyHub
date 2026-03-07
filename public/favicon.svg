@@ -1,0 +1,20 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo Sutilmente Arredondado (Squircle) -->
+  <rect width="1024" height="1024" rx="256" fill="url(#bg-gradient)" />
+  
+  <!-- Sombra do Ícone para profundidade -->
+  <path d="M280 496L512 280L744 496V744C744 779.346 715.346 808 680 808H584V600H440V808H344C308.654 808 280 779.346 280 744V496Z" fill="#000000" fill-opacity="0.3" transform="translate(0, 16)" />
+  
+  <!-- Formato da Casa Principal (Lucide Home style, thickened for 1024px) -->
+  <path d="M280 496L512 280L744 496V744C744 779.346 715.346 808 680 808H584V600H440V808H344C308.654 808 280 779.346 280 744V496Z" fill="#FFFFFF" />
+  
+  <!-- Telhado (Apenas o contorno superior ou sombra para detalhe) se necessário... Mas vamos com o flat elegante -->
+  <path d="M184 576L512 256L840 576" stroke="#FFFFFF" stroke-width="80" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  
+  <defs>
+    <linearGradient id="bg-gradient" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+  </defs>
+</svg>

@@ -17,6 +17,7 @@ import { useFinanceStore } from '@/stores/financeStore';
 import { useDocStore } from '@/stores/docStore';
 import { useChatStore } from '@/stores/chatStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
 
 function App() {
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
@@ -34,6 +35,7 @@ function App() {
   const fetchConversations = useChatStore((s) => s.fetchConversations);
   const fetchMemories = useChatStore((s) => s.fetchMemories);
   const subscribeChatRealtime = useChatStore((s) => s.subscribeRealtime);
+  const allTasks = useTaskStore((s) => s.tasks);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -64,6 +66,21 @@ function App() {
       unsubChat();
     };
   }, []);
+
+  // ── Notification Reminders ──
+  useEffect(() => {
+    requestNotificationPermission();
+
+    // Check reminders on load and every 30 minutes
+    const runReminders = () => checkReminders(allTasks);
+    const timeout = setTimeout(runReminders, 5000); // wait 5s after load
+    const interval = setInterval(runReminders, 30 * 60 * 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [allTasks]);
 
   return (
     <BrowserRouter>

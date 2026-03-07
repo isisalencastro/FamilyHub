@@ -64,9 +64,9 @@ export function Sidebar() {
             <div className="sidebar-header">
                 <div className="sidebar-brand">
                     <div className="sidebar-brand-icon">
-                        <Bot size={20} color="white" />
+                        <Home size={20} color="white" />
                     </div>
-                    <span className="sidebar-brand-name">Alenfinos</span>
+                    <span className="sidebar-brand-name">Alenfinos Hub</span>
                 </div>
             </div>
 

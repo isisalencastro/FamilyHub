@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Bot, RefreshCw, Cpu, Wifi, Server, Database, UserCircle } from 'lucide-react';
+import { Bot, RefreshCw, Cpu, Wifi, Server, Database, UserCircle, AlertTriangle } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { isTauri } from '@/lib/ollamaClient';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 export function SettingsPage() {
@@ -50,8 +51,34 @@ export function SettingsPage() {
             <div className="page-container">
                 <div className="page-header">
                     <h1 className="page-title">Configurações</h1>
-                    <p className="page-subtitle">Gerencie as configurações do Alenfinos</p>
+                    <p className="page-subtitle">Gerencie as configurações do Alenfinos Hub</p>
                 </div>
+
+                {/* Browser Mode Warning */}
+                {!isTauri() && (
+                    <div style={{
+                        marginBottom: '20px',
+                        padding: '16px 20px',
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px solid rgba(245, 158, 11, 0.25)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                    }}>
+                        <AlertTriangle size={20} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#f59e0b', marginBottom: '4px' }}>
+                                Modo Browser Detectado
+                            </div>
+                            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                                Você está rodando o app no navegador (<code style={{ background: 'var(--color-bg-hover)', padding: '1px 4px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>npm run dev</code>).
+                                O <strong>Chat com Ring</strong> funciona via HTTP direto, mas o <strong>upload de documentos</strong> é limitado.
+                                Para a experiência completa, use <code style={{ background: 'var(--color-bg-hover)', padding: '1px 4px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>npm run tauri dev</code>.
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Connection Status */}
                 <div className="card" style={{ marginBottom: '20px' }}>
@@ -357,7 +384,7 @@ export function SettingsPage() {
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
                         <p>
-                            <strong style={{ color: 'var(--color-text-primary)' }}>Alenfinos</strong> v0.2.0
+                            <strong style={{ color: 'var(--color-text-primary)' }}>Alenfinos Hub</strong> v0.2.0
                         </p>
                         <p>
                             Intranet familiar com assistente de IA.{' '}

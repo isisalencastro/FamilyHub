@@ -54,8 +54,8 @@ export function Dashboard() {
     const famFinance = useFamilyFinanceStore();
 
     // Calculate Dynamic Finance Summary for Family
-    const staticFamilyIncome = famFinance.renda.salarios.reduce((acc, c) => acc + c.value, 0) + famFinance.renda.vales.reduce((acc, c) => acc + c.value, 0);
-    const staticFamilyExpense = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0) + famFinance.parcelamentos.reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.reduce((acc, c) => acc + c.total, 0);
+    const staticFamilyIncome = famFinance.entradas.reduce((acc, c) => acc + c.value, 0);
+    const staticFamilyExpense = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0) + famFinance.creditos.reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.reduce((acc, c) => acc + c.total, 0);
 
     const displayIncome = isFamilia ? staticFamilyIncome : financeSummary.totalIncome;
     const displayExpense = isFamilia ? staticFamilyExpense : financeSummary.totalExpense;
@@ -234,6 +234,52 @@ export function Dashboard() {
                                 {formatCurrency(displayBalance)}
                             </div>
                         </div>
+
+                        {/* Mini Finance Bar Chart */}
+                        {isFamilia && (() => {
+                            const fixoTotal = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0);
+                            const creditoTotal = famFinance.creditos.reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.reduce((acc, c) => acc + c.total, 0);
+                            const livre = Math.max(staticFamilyIncome - fixoTotal - creditoTotal, 0);
+                            const maxVal = Math.max(staticFamilyIncome, fixoTotal + creditoTotal + livre, 1);
+                            const bars = [
+                                { label: 'Receita', value: staticFamilyIncome, color: '#22c55e' },
+                                { label: 'Fixos', value: fixoTotal, color: '#ef4444' },
+                                { label: 'Créditos', value: creditoTotal, color: '#f59e0b' },
+                                { label: 'Livre', value: livre, color: '#8b5cf6' },
+                            ];
+                            return (
+                                <div style={{ marginTop: '16px', padding: '12px 0 0' }}>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '48px' }}>
+                                        {bars.map((bar) => {
+                                            const pct = Math.max((bar.value / maxVal) * 100, 4);
+                                            return (
+                                                <div key={bar.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                    <div
+                                                        style={{
+                                                            width: '100%',
+                                                            height: `${pct * 0.48}px`,
+                                                            minHeight: '4px',
+                                                            background: `linear-gradient(180deg, ${bar.color}, ${bar.color}80)`,
+                                                            borderRadius: '4px 4px 2px 2px',
+                                                            transition: 'height 0.5s ease',
+                                                        }}
+                                                        title={`${bar.label}: ${formatCurrency(bar.value)}`}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                                        {bars.map((bar) => (
+                                            <div key={bar.label} style={{ flex: 1, textAlign: 'center' }}>
+                                                <div style={{ fontSize: '10px', fontWeight: 600, color: bar.color }}>{bar.label}</div>
+                                                <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{formatCurrency(bar.value)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Tasks */}

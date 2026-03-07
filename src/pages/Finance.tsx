@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     TrendingUp,
@@ -6,74 +6,50 @@ import {
     Wallet,
     AlertTriangle,
     CreditCard,
-    DollarSign,
-    CalendarClock,
     CheckCircle2,
     Trash2,
     Plus,
-    Bot
+    Bot,
+    Calendar,
+    CalendarClock
 } from 'lucide-react';
 import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
 import { useChatStore } from '@/stores/chatStore';
+import { FinanceModal, type FinanceModalType } from '@/components/FinanceModal';
+
+type Tab = 'PLANO' | 'TERMOMETRO' | 'DIVIDAS';
 
 export function Finance() {
     const navigate = useNavigate();
     const store = useFamilyFinanceStore();
     const chatStore = useChatStore();
 
+    const [activeTab, setActiveTab] = useState<Tab>('PLANO');
+    const [modalType, setModalType] = useState<FinanceModalType>(null);
+    const [selectedMonth, setSelectedMonth] = useState<string>(store.currentMonth);
+
+    useEffect(() => {
+        store.checkMonthTurnover();
+    }, []);
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-    const parseNumber = (str: string | null) => {
+    const parseNumber = (str: string | undefined) => {
         if (!str) return 0;
         return parseFloat(str.replace(',', '.'));
     };
 
-    const handleAddRenda = (type: 'salarios' | 'vales') => {
-        const name = window.prompt(`Adicionar ${type === 'salarios' ? 'Salário' : 'Vale'} (Nome da Pessoa):`);
-        if (!name) return;
-        const valStr = window.prompt(`Valor do ${type === 'salarios' ? 'Salário' : 'Vale'} (Ex: 2000.50):`);
-        const value = parseNumber(valStr);
-        if (value) store.addRenda(type, { name, value });
-    };
+    const handleModalSubmit = (data: any) => {
+        const val = parseNumber(data.value);
+        const total = parseNumber(data.total);
 
-    const handleAddFixo = () => {
-        const name = window.prompt('Nome da Conta Fixa Geral (ex: Luz, Água):');
-        if (!name) return;
-        const valStr = window.prompt('Valor mensal:');
-        const value = parseNumber(valStr);
-        if (value) store.addFixo({ name, value });
-    };
-
-    const handleAddParcelamento = () => {
-        const name = window.prompt('Nome do Parcelamento (ex: TV, Celular):');
-        if (!name) return;
-        const type = window.prompt('Detalhes do Parcelamento (ex: Parcelamento 3/6, Assinatura):') || '';
-        const valStr = window.prompt('Valor da Parcela Mensal:');
-        const value = parseNumber(valStr);
-        if (value) store.addParcelamento({ name, type, value });
-    };
-
-    const handleAddDivida = (person: 'isis' | 'angelica') => {
-        const name = window.prompt(`Nome da Dívida para ${person === 'isis' ? 'Isis' : 'Angélica'}:`);
-        if (!name) return;
-        const desc = window.prompt('Detalhes da Dívida (ex: 2x 700,00 ou só traços):') || '';
-        const valStr = window.prompt('Valor TOTAL restante da Dívida:');
-        const total = parseNumber(valStr);
-        if (total) {
-            person === 'isis'
-                ? store.addDividaIsis({ name, desc, total })
-                : store.addDividaAngelica({ name, desc, total });
-        }
-    };
-
-    const handleAddProblema = () => {
-        const name = window.prompt('Problema / Histórico Pós Data:');
-        if (!name) return;
-        const desc = window.prompt('Quando este problema acaba ou vai acontecer?:') || '';
-        const valStr = window.prompt('Valor total:');
-        const total = parseNumber(valStr);
-        if (total) store.addProblema({ name, desc, total });
+        if (modalType === 'renda' && val && data.name) store.addEntrada({ name: data.name, value: val, isFixed: data.isFixed });
+        else if (modalType === 'fixo' && val && data.name) store.addFixo({ name: data.name, value: val, isFixed: data.isFixed });
+        else if (modalType === 'credito' && val && data.name) store.addCredito({ name: data.name, value: val, type: data.type, congelado: !!data.congelado, progresso: data.progresso || '', isEvelise: !!data.isEvelise });
+        else if (modalType === 'divida-isis' && total && data.name) store.addDividaIsis({ name: data.name, desc: data.desc || '', total });
+        else if (modalType === 'divida-angelica' && total && data.name) store.addDividaAngelica({ name: data.name, desc: data.desc || '', total });
+        else if (modalType === 'problema' && total && data.name) store.addProblema({ name: data.name, total, desc: data.desc || '', encerraEm: data.encerraEm || '', status: data.status || '' });
     };
 
     const generateAIDiagnostic = () => {
@@ -82,54 +58,56 @@ export function Finance() {
             return;
         }
 
-        const prompt = `Você atua como um educador financeiro empático e cirúrgico da Família Alenfinos. Baseado nos dados exatos atuais da família, apresente um diagnóstico claro sobre a saúde financeira. Faça críticas construtivas, aponte riscos e sugira estratégias de quitação de dívidas e redução do custo de vida. Não faça suposições externas.
-
-DADOS DA FAMÍLIA:
+        const prompt = `Você atua como um educador financeiro empático e cirúrgico da Família Alenfinos. Baseado nos dados exatos atuais da família, apresente um diagnóstico claro sobre a saúde financeira. Faça críticas construtivas e aponte riscos.
 Renda Total: ${formatCurrency(totalRenda)}
-Renda Composição: ${store.renda.salarios.map(s => s.name + ' - ' + formatCurrency(s.value)).join(', ')} | Vales: ${store.renda.vales.map(v => v.name + ' - ' + formatCurrency(v.value)).join(', ')}
-
+Renda Composição: ${store.entradas.map(s => s.name + ' - ' + formatCurrency(s.value)).join(', ')}
 Despesas Fixas Mensais: ${formatCurrency(totalFixo)}
-(Líquido Livre sem Parcelamentos: ${formatCurrency(totalRenda - totalFixo)})
-
-Custos com Parcelamentos e Assinaturas (Cartões): ${formatCurrency(totalParcelamentos)}
-O que deve em parcelas detalhado: ${store.parcelamentos.map(p => p.name + ' (' + p.type + '). Valor mês: ' + formatCurrency(p.value)).join('; ')}
-
+Custos com Assinaturas/Parcelamentos (Cartões): ${formatCurrency(totalCreditos)} (${store.creditos.map(p => p.name + '...').join('; ')})
 Dívidas Totais Angélica: ${formatCurrency(totalDivAngelica)}
-Detalhe Dív. Angélica: ${store.dividasAngelica.map(d => d.name + ' => Total:' + formatCurrency(d.total)).join('; ')}
-
-Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}
-Detalhe Dív. Isis: ${store.dividasIsis.map(d => d.name + ' => Total:' + formatCurrency(d.total)).join('; ')}
-
-Histórico/Risco no radar da família: ${store.problemas.map(p => p.name + ' = ' + formatCurrency(p.total) + ' (' + p.desc + ')').join('; ')}
-
-Por favor, faça um balanço financeiro e crie um plano de contenção para esses riscos atuais. Quais devem ser os próximos passos dos meses seguintes da família?`;
+Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
 
         chatStore.sendMessage('familia', prompt);
         navigate('/chat');
     };
 
-    const totalRenda = [...store.renda.salarios, ...store.renda.vales].reduce((a, b) => a + b.value, 0);
-    const totalFixo = store.fixoMensal.reduce((acc, curr) => acc + curr.value, 0);
-    const totalParcelamentos = store.parcelamentos.reduce((acc, curr) => acc + curr.value, 0);
-    const totalProblemas = store.problemas.reduce((acc, curr) => acc + curr.total, 0);
+    const totalRenda = store.entradas.reduce((a, b) => a + b.value, 0);
+    const totalFixo = store.fixoMensal.reduce((a, b) => a + b.value, 0);
+    const totalCreditos = store.creditos.reduce((a, b) => a + b.value, 0);
+    const totalProblemas = store.problemas.reduce((a, b) => a + b.total, 0);
 
-    const totalCreditoFaturas = totalParcelamentos + totalProblemas;
+    const saldoLivreReal = totalRenda - totalFixo - totalCreditos - totalProblemas;
 
-    const totalDivAngelica = store.dividasAngelica.reduce((acc, curr) => acc + curr.total, 0);
-    const totalDivIsis = store.dividasIsis.reduce((acc, curr) => acc + curr.total, 0);
+    const totalDivAngelica = store.dividasAngelica.reduce((a, b) => a + b.total, 0);
+    const totalDivIsis = store.dividasIsis.reduce((a, b) => a + b.total, 0);
 
-    const saldoLivreReal = totalRenda - totalFixo - totalCreditoFaturas;
+    const termometroMes = store.termometroFiles[selectedMonth];
+    const thermMonths = Object.keys(store.termometroFiles).sort();
+
+    // Totais do termometro
+    const termEntradas = termometroMes?.dias.reduce((a, d) => a + (d.entrada || 0), 0) || 0;
+    const termSaidas = termometroMes?.dias.reduce((a, d) => a + (d.saida || 0), 0) || 0;
+    const termDiario = termometroMes?.dias.reduce((a, d) => a + (d.diario || 0), 0) || 0;
+
+    const currentSaldoTermometro = store.getSaldoFinalMes(selectedMonth) || 0;
 
     return (
         <div className="main-content">
-            <div className="page-container">
+            <FinanceModal
+                type={modalType}
+                onClose={() => setModalType(null)}
+                onSubmit={handleModalSubmit}
+            />
+
+            <div className="page-container" style={{ paddingBottom: 100 }}>
                 {/* Header */}
                 <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-accent-primary)', background: 'rgba(79,138,255,0.1)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(79,138,255,0.25)' }}>v2.0</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-tertiary)' }}>Módulo Financeiro</span>
+                        </div>
                         <h1 className="page-title">Finanças da Casa</h1>
-                        <p className="page-subtitle">
-                            Monitoramento em tempo real do ecossistema financeiro familiar.
-                        </p>
+                        <p className="page-subtitle">Página baseada nas planilhas de Termômetro e Plano de Contas.</p>
                     </div>
                     <button
                         className="btn btn-primary"
@@ -140,256 +118,277 @@ Por favor, faça um balanço financeiro e crie um plano de contenção para esse
                     </button>
                 </div>
 
-                {/* Summary Cards */}
-                <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-                    <div className="stat-card green">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                            <div className="stat-icon green">
-                                <TrendingUp size={20} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                                <button className="btn btn-icon btn-ghost" style={{ padding: 4 }} onClick={() => handleAddRenda('salarios')} title="Adicionar Salário"><Plus size={14} /></button>
-                            </div>
+                {/* Tabs */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 32, borderBottom: '1px solid var(--color-border-default)' }}>
+                    {['PLANO', 'TERMOMETRO', 'DIVIDAS'].map((tab) => (
+                        <div
+                            key={tab}
+                            onClick={() => setActiveTab(tab as Tab)}
+                            style={{
+                                padding: '12px 24px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                color: activeTab === tab ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+                                borderBottom: activeTab === tab ? '2px solid var(--color-accent-primary)' : '2px solid transparent',
+                                transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 8
+                            }}
+                        >
+                            {tab === 'PLANO' && <Wallet size={16} />}
+                            {tab === 'TERMOMETRO' && <CalendarClock size={16} />}
+                            {tab === 'DIVIDAS' && <AlertTriangle size={16} />}
+                            {tab === 'PLANO' ? 'Plano de Contas' : tab === 'TERMOMETRO' ? 'Termômetro' : 'Dívidas & Passivos'}
                         </div>
-                        <div className="stat-value" style={{ color: 'var(--color-success)' }}>
-                            {formatCurrency(totalRenda)}
-                        </div>
-                        <div className="stat-label">Renda (Salários + Vales)</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 8 }}>
-                            <div>
-                                {store.renda.salarios.map(r => (
-                                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                                        <span>Salário {r.name}</span>
-                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                            {formatCurrency(r.value)}
-                                            <Trash2 size={10} style={{ cursor: 'pointer', color: 'var(--color-error)' }} onClick={() => store.removeRenda('salarios', r.id)} />
+                    ))}
+                </div>
+
+                {activeTab === 'PLANO' && (
+                    <div className="animation-fade-in content-grid">
+                        <div className="card">
+                            <div className="card-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <TrendingUp size={18} style={{ color: 'var(--color-success)' }} />
+                                    <h2 className="card-title">Entradas</h2>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setModalType('renda')}><Plus size={14} /> Adicionar Renda</button>
+                            </div>
+                            <div className="task-list">
+                                {store.entradas.map(e => (
+                                    <div key={e.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{e.name}</div>
+                                            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                                                {e.isFixed ? <span style={{ color: 'var(--color-success)' }}>Fixa</span> : <span style={{ color: 'var(--color-warning)' }}>Variável (Só este mês)</span>}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(e.value)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeEntrada(e.id)}><Trash2 size={14} /></button>
                                         </div>
                                     </div>
                                 ))}
+                                <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', background: 'rgba(34,197,94,0.05)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                                    <span>TOTAL ENTRADAS</span><span style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalRenda)}</span>
+                                </div>
                             </div>
-                            <div>
-                                {store.renda.vales.map(r => (
-                                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                                        <span>Vale {r.name}</span>
-                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                            {formatCurrency(r.value)}
-                                            <Trash2 size={10} style={{ cursor: 'pointer', color: 'var(--color-error)' }} onClick={() => store.removeRenda('vales', r.id)} />
+                        </div>
+
+                        <div className="card">
+                            <div className="card-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <TrendingDown size={18} style={{ color: 'var(--color-error)' }} />
+                                    <h2 className="card-title">Saídas Fixas (Débito)</h2>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setModalType('fixo')}><Plus size={14} /> Adicionar Saída</button>
+                            </div>
+                            <div className="task-list">
+                                {store.fixoMensal.map(f => (
+                                    <div key={f.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleFixoPaid(f.id)}>
+                                            {f.paid ? <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />}
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: f.paid ? 400 : 500, color: f.paid ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)' }}>{f.name}</div>
+                                                {!f.isFixed && <div style={{ fontSize: 11, color: 'var(--color-warning)', fontFamily: 'var(--font-mono)' }}>Despesa Pontual (Variável)</div>}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(f.value)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeFixo(f.id)}><Trash2 size={14} /></button>
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
-                        <div style={{
-                            content: '', position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
-                            borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-                            background: 'linear-gradient(90deg, var(--color-error), #dc2626)',
-                        }} />
-                        <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-error)' }}>
-                            <TrendingDown size={20} />
-                        </div>
-                        <div className="stat-value" style={{ color: 'var(--color-error)' }}>
-                            {formatCurrency(totalFixo)}
-                        </div>
-                        <div className="stat-label">Total Fixo Mensal (Débito)</div>
-                    </div>
-
-                    <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
-                        <div style={{
-                            content: '', position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
-                            borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-                            background: 'linear-gradient(90deg, var(--color-warning), #d97706)',
-                        }} />
-                        <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)' }}>
-                            <CreditCard size={20} />
-                        </div>
-                        <div className="stat-value" style={{ color: 'var(--color-warning)' }}>
-                            {formatCurrency(totalCreditoFaturas)}
-                        </div>
-                        <div className="stat-label">Créditos, Faturas e Descontos</div>
-                    </div>
-
-                    <div className={`stat-card ${saldoLivreReal >= 0 ? 'green' : 'red'}`} style={{ border: saldoLivreReal < 0 ? '1px solid var(--color-error)' : '1px solid var(--color-success)', background: saldoLivreReal < 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(34, 197, 94, 0.05)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div className={`stat-icon ${saldoLivreReal >= 0 ? 'green' : 'red'}`}>
-                                <Wallet size={20} />
-                            </div>
-                        </div>
-                        <div className="stat-value" style={{ color: saldoLivreReal >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
-                            {formatCurrency(saldoLivreReal)}
-                        </div>
-                        <div className="stat-label" style={{ fontWeight: 600 }}>Saldo Livre do Mês</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
-                            (Deduzida as faturas e fixos do salário total)
-                        </div>
-                    </div>
-                </div>
-
-                <div className="content-grid" style={{ marginTop: '20px' }}>
-                    {/* Fixo Mensal */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <DollarSign size={18} style={{ color: 'var(--color-error)' }} />
-                                <h2 className="card-title">Fixo Mensal (Débito)</h2>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: '13px', color: 'var(--color-text-tertiary)' }}>
-                                    {store.fixoMensal.length} contas
-                                </span>
-                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddFixo}>
-                                    <Plus size={14} /> Adicionar
-                                </button>
-                            </div>
-                        </div>
-                        <div className="task-list">
-                            {store.fixoMensal.map((item) => (
-                                <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleFixoPaid(item.id)}>
-                                        {item.paid ? (
-                                            <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} />
-                                        ) : (
-                                            <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />
-                                        )}
-                                        <span style={{ fontSize: '14px', fontWeight: item.paid ? 400 : 500, color: item.paid ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)' }}>
-                                            {item.name}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(item.value)}</span>
-                                        <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeFixo(item.id)}>
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                                {/* Creditos / Parcelamentos Embeded */}
+                                <div style={{ padding: '8px 14px', fontSize: 12, fontWeight: 600, color: 'var(--color-text-tertiary)', background: 'var(--color-bg-secondary)', borderTop: '1px solid var(--color-border-default)', borderBottom: '1px solid var(--color-border-default)', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>CRÉDITO E PARCELAMENTOS (Cartão)</span>
+                                    <button className="btn btn-ghost btn-sm" style={{ padding: '0px 4px', height: 'auto', color: 'var(--color-accent-primary)' }} onClick={() => setModalType('credito')}><Plus size={12} /></button>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    {/* Crédito e Parcelamentos */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <CreditCard size={18} style={{ color: 'var(--color-warning)' }} />
-                                <h2 className="card-title">Créditos, Faturas e Descontos</h2>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: '14px', color: 'var(--color-warning)', fontWeight: 700 }}>
-                                    {formatCurrency(totalCreditoFaturas)}/mês
-                                </span>
-                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddProblema} title="Adicionar Desconto de Folha/Fatura Única">
-                                    <AlertTriangle size={14} style={{ marginRight: '4px', color: 'var(--color-error)' }} /> Fatura/Desconto
-                                </button>
-                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={handleAddParcelamento} title="Adicionar Assinatura ou Parcelamento Cartão">
-                                    <Plus size={14} /> Assinatura/Parcela
-                                </button>
-                            </div>
-                        </div>
-                        <div className="task-list">
-                            {store.problemas.map((item) => (
-                                <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.05)' }}>
-                                    <div>
-                                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-error)' }}>{item.name}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Fatura do Mês ou Desconto: {item.desc}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-error)' }}>{formatCurrency(item.total)}</span>
-                                        <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeProblema(item.id)}>
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {store.parcelamentos.map((item) => (
-                                <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
-                                    <div>
-                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{item.name}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>{item.type}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(item.value)}</span>
-                                        <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeParcelamento(item.id)}>
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {store.parcelamentos.length === 0 && store.problemas.length === 0 && <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-tertiary)' }}>Nenhum gasto de crédito.</div>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Dívidas e Problemas (Full Width) */}
-                <div style={{ marginTop: '20px' }}>
-                    <div className="card">
-                        <div className="card-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <AlertTriangle size={18} style={{ color: 'var(--color-error)' }} />
-                                <h2 className="card-title">Dívidas e Passivos Congelados</h2>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                            {/* Dívidas Angélica */}
-                            <div>
-                                <h3 style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>Dívidas Ocultas (Angélica)</span>
-                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                        <span style={{ color: 'white', fontWeight: 600 }}>{formatCurrency(totalDivAngelica)}</span>
-                                        <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => handleAddDivida('angelica')}><Plus size={12} /></button>
-                                    </div>
-                                </h3>
-                                <div className="task-list">
-                                    {store.dividasAngelica.map((item) => (
-                                        <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '8px 12px' }}>
-                                            <div>
-                                                <div style={{ fontSize: '13px', fontWeight: 500 }}>{item.name}</div>
-                                                <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{item.desc}</div>
+                                {store.creditos.map(c => (
+                                    <div key={c.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', background: c.congelado ? 'rgba(245, 158, 11, 0.05)' : 'transparent' }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 500, color: c.congelado ? 'var(--color-warning)' : 'var(--color-text-primary)' }}>
+                                                {c.congelado && '⚠️ '} {c.name}
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <span style={{ fontSize: '13px', fontWeight: 600 }}>{formatCurrency(item.total)}</span>
-                                                <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaAngelica(item.id)}><Trash2 size={12} /></button>
+                                            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                                <span style={{ fontSize: 10, background: 'rgba(124,92,252,0.12)', color: 'var(--color-accent-secondary)', padding: '2px 6px', borderRadius: 4 }}>{c.type.toUpperCase()}</span>
+                                                {c.progresso && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', padding: '2px 6px', borderRadius: 4 }}>{c.progresso}</span>}
+                                                {c.isEvelise && <span style={{ fontSize: 10, background: 'rgba(239, 68, 68, 0.12)', color: 'var(--color-error)', padding: '2px 6px', borderRadius: 4 }}>EVELISE</span>}
+                                                {c.congelado && <span style={{ fontSize: 10, background: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)', padding: '2px 6px', borderRadius: 4 }}>CONGELADO</span>}
                                             </div>
                                         </div>
-                                    ))}
-                                    {store.dividasAngelica.length === 0 && <div style={{ fontSize: 12, padding: 8, color: 'var(--color-text-tertiary)' }}>Sem dividas.</div>}
-                                </div>
-                            </div>
-
-                            {/* Dívidas Isis */}
-                            <div>
-                                <h3 style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>Dívidas Ocultas (Isis)</span>
-                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                        <span style={{ color: 'white', fontWeight: 600 }}>{formatCurrency(totalDivIsis)}</span>
-                                        <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => handleAddDivida('isis')}><Plus size={12} /></button>
-                                    </div>
-                                </h3>
-                                <div className="task-list">
-                                    {store.dividasIsis.map((item) => (
-                                        <div key={item.id} className="task-item" style={{ justifyContent: 'space-between', padding: '8px 12px' }}>
-                                            <div>
-                                                <div style={{ fontSize: '13px', fontWeight: 500 }}>{item.name}</div>
-                                                <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>{item.desc}</div>
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <span style={{ fontSize: '13px', fontWeight: 600 }}>{formatCurrency(item.total)}</span>
-                                                <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaIsis(item.id)}><Trash2 size={12} /></button>
-                                            </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: c.congelado ? 'var(--color-warning)' : 'inherit' }}>{formatCurrency(c.value)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-text-tertiary)' }} onClick={() => store.toggleCongelado(c.id)} title="Congelar/Descongelar">❄️</button>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeCredito(c.id)}><Trash2 size={14} /></button>
                                         </div>
-                                    ))}
-                                    {store.dividasIsis.length === 0 && <div style={{ fontSize: 12, padding: 8, color: 'var(--color-text-tertiary)' }}>Sem dividas.</div>}
+                                    </div>
+                                ))}
+
+                                <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                                    <span>TOTAL SAÍDAS (Débito + Crédito)</span><span style={{ color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixo + totalCreditos)}</span>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Totais Gerais */}
+                        <div style={{ gridColumn: '1 / -1', padding: '20px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Total Entradas: {formatCurrency(totalRenda)}</div>
+                                <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Total Saídas/Fixos/Faturas: {formatCurrency(totalFixo + totalCreditos + totalProblemas)}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 4 }}>SALDO PROJETADO RESTANTE (LIVRE)</div>
+                                <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)', color: saldoLivreReal >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
+                                    {formatCurrency(saldoLivreReal)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
+                {activeTab === 'TERMOMETRO' && (
+                    <div className="animation-fade-in">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ width: 160 }}>
+                                    {thermMonths.map(m => <option key={m} value={m}>{store.termometroFiles[m].nome} {m.split('-')[1]}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {termometroMes ? (
+                            <div className="card" style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                    <thead>
+                                        <tr style={{ background: 'var(--color-bg-secondary)' }}>
+                                            <th style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border-default)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Dia</th>
+                                            <th style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border-default)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Entrada (+R$)</th>
+                                            <th style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border-default)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Saída (-R$)</th>
+                                            <th style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border-default)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Diário (-R$)</th>
+                                            <th style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border-default)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Saldo Final</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {termometroMes.dias.map((d, index) => {
+                                            const eStr = d.entrada !== null ? d.entrada.toString() : '';
+                                            const sStr = d.saida !== null ? d.saida.toString() : '';
+                                            const diStr = d.diario !== null ? d.diario.toString() : '';
+
+                                            // Progressive saldo calc for rendering
+                                            let s = termometroMes.saldoInicial;
+                                            for (let i = 0; i <= index; i++) s += (termometroMes.dias[i].entrada || 0) - ((termometroMes.dias[i].saida || 0) + (termometroMes.dias[i].diario || 0));
+
+                                            const isToday = new Date().getDate() === d.dia && new Date().getMonth() + 1 === parseInt(selectedMonth.split('-')[0]);
+
+                                            return (
+                                                <tr key={index} style={{ background: isToday ? 'rgba(79,138,255,0.05)' : 'transparent', borderLeft: isToday ? '3px solid var(--color-accent-primary)' : '3px solid transparent' }}>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-text-secondary)' }}>{d.dia}</td>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={eStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'entrada', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-success)' }} /></td>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={sStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'saida', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-error)' }} /></td>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)' }}><input className="input" type="number" value={diStr} onChange={e => store.updateTermometroDay(selectedMonth, d.dia, 'diario', e.target.value ? parseFloat(e.target.value) : null)} style={{ height: 32, padding: '4px 8px', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-warning)' }} /></td>
+                                                    <td style={{ padding: '6px 14px', borderBottom: '1px solid var(--color-border-default)', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: s >= 0 ? 'var(--color-accent-primary)' : 'var(--color-error)' }}>{formatCurrency(s)}</td>
+                                                </tr>
+                                            )
+                                        })}
+                                        <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                            <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>TOTAIS</td>
+                                            <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-success)' }}>{formatCurrency(termEntradas)}</td>
+                                            <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-error)' }}>{formatCurrency(termSaidas)}</td>
+                                            <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--color-warning)' }}>{formatCurrency(termDiario)}</td>
+                                            <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 800, color: currentSaldoTermometro >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>{formatCurrency(currentSaldoTermometro)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: 60, color: 'var(--color-text-tertiary)' }}>Mês sem lançamento criado. Altere o Mês/Ano e salve com alguma informação.</div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'DIVIDAS' && (
+                    <div className="animation-fade-in content-grid">
+                        <div className="card" style={{ gridColumn: '1 / -1' }}>
+                            <div className="card-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <AlertTriangle size={18} style={{ color: 'var(--color-error)' }} />
+                                    <h2 className="card-title">Problemas Financeiros Ativos / Faturas Isoladas</h2>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setModalType('problema')}><Plus size={14} /> Adicionar Prejuízo Extra</button>
+                            </div>
+                            <div className="task-list">
+                                {store.problemas.map(p => (
+                                    <div key={p.id} className="task-item" style={{ justifyContent: 'space-between', padding: '12px 16px', borderLeft: '3px solid var(--color-error)', background: 'rgba(239, 68, 68, 0.05)' }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{p.name}</div>
+                                            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                                                {p.desc}
+                                                {p.encerraEm && <span style={{ marginLeft: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>Até: {p.encerraEm}</span>}
+                                                {p.status && <span style={{ marginLeft: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>Progresso: {p.status}</span>}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(p.total)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ color: 'var(--color-error)' }} onClick={() => store.removeProblema(p.id)}><Trash2 size={16} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {store.problemas.length === 0 && <div style={{ padding: '16px', fontSize: 13, color: 'var(--color-success)', textAlign: 'center' }}>Nenhum problema super faturado ativo (Tudo Ok!)</div>}
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <h2 className="card-title">Dívidas Ocultas (Angélica)</h2>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setModalType('divida-angelica')}><Plus size={14} /></button>
+                            </div>
+                            <div className="task-list">
+                                {store.dividasAngelica.map(d => (
+                                    <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{d.name}</div>
+                                            {d.desc && <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{d.desc}</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(d.total)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaAngelica(d.id)}><Trash2 size={14} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                                    <span>TOTAL</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalDivAngelica)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <h2 className="card-title">Dívidas Ocultas (Isis)</h2>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setModalType('divida-isis')}><Plus size={14} /></button>
+                            </div>
+                            <div className="task-list">
+                                {store.dividasIsis.map(d => (
+                                    <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px' }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{d.name}</div>
+                                            {d.desc && <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{d.desc}</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(d.total)}</span>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaIsis(d.id)}><Trash2 size={14} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                                    <span>TOTAL</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalDivIsis)}</span>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
-                </div>
-                <div style={{ padding: 20 }}></div>
+                )}
             </div>
         </div>
     );

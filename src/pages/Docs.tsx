@@ -17,11 +17,8 @@ import {
     File as FileIcon
 } from 'lucide-react';
 import { useDocStore } from '@/stores/docStore';
+import { useFileUpload } from '@/hooks/useFileUpload';
 import type { DocCategory } from '@/types';
-import { open } from '@tauri-apps/plugin-dialog';
-import { copyFile, mkdir, exists, readFile } from '@tauri-apps/plugin-fs';
-import { appDataDir } from '@tauri-apps/api/path';
-import { openPath } from '@tauri-apps/plugin-opener';
 
 const CATEGORY_COLORS: Record<DocCategory, string> = {
     identidade: '#8b5cf6',
@@ -46,25 +43,15 @@ function getFileIcon(fileName: string) {
     return <FileIcon size={20} />;
 }
 
-function formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
 export function Docs() {
     const { documents, categories, addDocument, deleteDocument, searchDocs } = useDocStore();
+    const { selectedFile, isUploading, selectFile, clearFile, copyFileToAppData, openFile, FileInput } = useFileUpload();
     const [activeCategory, setActiveCategory] = useState<DocCategory | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNew, setShowNew] = useState(false);
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState<DocCategory>('outros');
     const [newOwner, setNewOwner] = useState('');
-    const [selectedFile, setSelectedFile] = useState<{ path: string; name: string; size: string } | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [dragActive, setDragActive] = useState(false);
 
     const filteredDocs = searchQuery
         ? searchDocs(searchQuery)
@@ -73,67 +60,22 @@ export function Docs() {
             : documents.filter((d) => d.category === activeCategory);
 
     const handleSelectFile = async () => {
-        try {
-            const selected = await open({
-                multiple: false,
-                filters: [
-                    {
-                        name: 'Documentos',
-                        extensions: ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'odt'],
-                    },
-                    {
-                        name: 'Todos os arquivos',
-                        extensions: ['*'],
-                    },
-                ],
-            });
-
-            if (selected) {
-                const filePath = selected as string;
-                const fileName = filePath.split(/[\\/]/).pop() || 'arquivo';
-                // Try to get file size
-                try {
-                    const fileData = await readFile(filePath);
-                    const size = formatBytes(fileData.length);
-                    setSelectedFile({ path: filePath, name: fileName, size });
-                } catch {
-                    setSelectedFile({ path: filePath, name: fileName, size: 'N/A' });
-                }
-                if (!newName.trim()) {
-                    // Auto-fill name from filename (without extension)
-                    const nameWithoutExt = fileName.replace(/\.[^.]+$/, '');
-                    setNewName(nameWithoutExt);
-                }
-            }
-        } catch (err) {
-            console.error('Erro ao selecionar arquivo:', err);
+        await selectFile();
+        // Auto-fill name from selected file if name is empty
+        if (selectedFile && !newName.trim()) {
+            const nameWithoutExt = selectedFile.name.replace(/\.[^.]+$/, '');
+            setNewName(nameWithoutExt);
         }
     };
 
     const handleCreate = async () => {
         if (!newName.trim()) return;
-        setIsUploading(true);
 
         try {
             let savedPath: string | undefined;
 
             if (selectedFile) {
-                // Create the docs directory in app data
-                const appData = await appDataDir();
-                const docsDir = `${appData}documents`;
-
-                const dirExists = await exists(docsDir);
-                if (!dirExists) {
-                    await mkdir(docsDir, { recursive: true });
-                }
-
-                // Generate unique filename
-                const ext = selectedFile.name.split('.').pop() || '';
-                const uniqueName = `${Date.now()}_${selectedFile.name}`;
-                savedPath = `${docsDir}\\${uniqueName}`;
-
-                // Copy to app data
-                await copyFile(selectedFile.path, savedPath);
+                savedPath = await copyFileToAppData(selectedFile.name);
             }
 
             addDocument({
@@ -147,7 +89,7 @@ export function Docs() {
 
             setNewName('');
             setNewOwner('');
-            setSelectedFile(null);
+            clearFile();
             setShowNew(false);
         } catch (err) {
             console.error('Erro ao salvar documento:', err);
@@ -157,25 +99,19 @@ export function Docs() {
                 category: newCategory,
                 owner: newOwner.trim() || 'Família',
                 fileSize: selectedFile?.size || 'N/A',
-                filePath: selectedFile?.path,
+                filePath: undefined,
                 tags: [],
             });
             setNewName('');
             setNewOwner('');
-            setSelectedFile(null);
+            clearFile();
             setShowNew(false);
-        } finally {
-            setIsUploading(false);
         }
     };
 
     const handleOpenFile = async (filePath?: string) => {
         if (!filePath) return;
-        try {
-            await openPath(filePath);
-        } catch (err) {
-            console.error('Erro ao abrir arquivo:', err);
-        }
+        await openFile(filePath);
     };
 
     const getCategoryCount = (cat: DocCategory) =>
@@ -183,6 +119,9 @@ export function Docs() {
 
     return (
         <div className="main-content">
+            {/* Hidden file input for browser mode */}
+            <FileInput />
+
             <div className="page-container">
                 {/* Header */}
                 <div
@@ -316,7 +255,7 @@ export function Docs() {
                                         className="btn btn-ghost"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedFile(null);
+                                            clearFile();
                                         }}
                                         style={{ padding: '4px', color: 'var(--color-text-tertiary)', flexShrink: 0 }}
                                     >
@@ -381,7 +320,7 @@ export function Docs() {
                                 className="btn btn-secondary"
                                 onClick={() => {
                                     setShowNew(false);
-                                    setSelectedFile(null);
+                                    clearFile();
                                     setNewName('');
                                     setNewOwner('');
                                 }}
