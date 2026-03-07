@@ -1,14 +1,14 @@
 {
   "name": "alenfinos-hub",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "build:app": "tauri build && node -e \"require('fs').copyFileSync('src-tauri/target/release/bundle/nsis/Alenfinos Hub_0.1.0_x64-setup.exe', 'Alenfinos Hub_0.1.0_x64-setup.exe')\"",
+    "build:app": "tauri build && node -e \"require('fs').copyFileSync('src-tauri/target/release/bundle/nsis/Alenfinos Hub_0.3.0_x64-setup.exe', 'Alenfinos Hub_0.3.0_x64-setup.exe')\"",
     "test": "vitest"
   },
   "dependencies": {

@@ -34,7 +34,7 @@ interface UseFileUploadReturn {
     FileInput: () => React.ReactElement | null;
 }
 
-const isTauri = (): boolean => !!(window as any).__TAURI__;
+const isTauri = (): boolean => !!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__;
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -155,19 +155,26 @@ export function useFileUpload(): UseFileUploadReturn {
         if (!filePath) return;
 
         if (filePath.startsWith('browser://')) {
-            console.info('Arquivo salvo no modo browser. Abrir não disponível.');
+            alert('Este arquivo foi salvo em modo navegador e não pode ser aberto diretamente. Faça upload novamente pelo aplicativo desktop.');
             return;
         }
 
         if (isTauri()) {
             try {
+                const { exists } = await import('@tauri-apps/plugin-fs');
+                const fileExists = await exists(filePath);
+                if (!fileExists) {
+                    alert('Arquivo não encontrado. Pode ter sido movido ou excluído.\n\nCaminho: ' + filePath);
+                    return;
+                }
                 const { openPath } = await import('@tauri-apps/plugin-opener');
                 await openPath(filePath);
             } catch (err) {
                 console.error('Erro ao abrir arquivo:', err);
+                alert('Erro ao abrir o arquivo. Verifique se ele ainda existe no local salvo.\n\nDetalhes: ' + (err as Error).message);
             }
         } else {
-            console.info('Abrir arquivo não disponível no browser.');
+            alert('Abrir arquivo não está disponível no modo navegador.');
         }
     }, []);
 

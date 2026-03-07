@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface ShoppingItem {
     id: string;
@@ -39,136 +40,81 @@ const defaultCategories: ShoppingCategory[] = [
     { id: 'others', name: 'Outros', icon: '📦', color: '#f59e0b' },
 ];
 
-const defaultItems: ShoppingItem[] = [
-    {
-        id: '1',
-        name: 'Leite (2L)',
-        note: 'Integral',
-        categoryId: 'groceries',
-        completed: false,
-        quantity: 2,
-        priority: 'normal',
-        assignedTo: 'angelica',
-        addedAt: new Date().toISOString(),
-    },
-    {
-        id: '2',
-        name: 'Pão de Forma Integral',
-        categoryId: 'groceries',
-        completed: false,
-        quantity: 1,
-        priority: 'normal',
-        assignedTo: 'isis',
-        addedAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-        id: '3',
-        name: 'Ovos (1 Dúzia)',
-        categoryId: 'groceries',
-        completed: true,
-        quantity: 1,
-        priority: 'normal',
-        assignedTo: 'isis',
-        addedAt: new Date(Date.now() - 172800000).toISOString(),
-        completedBy: 'Isis',
-    },
-    {
-        id: '4',
-        name: 'Detergente',
-        note: 'Neutro',
-        categoryId: 'cleaning',
-        completed: false,
-        quantity: 1,
-        priority: 'high',
-        assignedTo: 'angelica',
-        addedAt: new Date().toISOString(),
-    },
-    {
-        id: '5',
-        name: 'Café em Pó',
-        note: '500g, torrado',
-        categoryId: 'groceries',
-        completed: false,
-        quantity: 1,
-        priority: 'high',
-        addedAt: new Date().toISOString(),
-    },
-    {
-        id: '6',
-        name: 'Sabonete Líquido',
-        categoryId: 'hygiene',
-        completed: false,
-        quantity: 2,
-        priority: 'normal',
-        assignedTo: 'isis',
-        addedAt: new Date().toISOString(),
-    },
-];
+export const useShoppingStore = create<ShoppingState>()(
+    persist(
+        (set) => ({
+            categories: defaultCategories,
+            items: [],
 
-export const useShoppingStore = create<ShoppingState>((set) => ({
-    categories: defaultCategories,
-    items: defaultItems,
+            addCategory: (name, icon, color) =>
+                set((state) => ({
+                    categories: [
+                        ...state.categories,
+                        {
+                            id: `cat-${Date.now()}`,
+                            name,
+                            icon,
+                            color,
+                        },
+                    ],
+                })),
 
-    addCategory: (name, icon, color) =>
-        set((state) => ({
-            categories: [
-                ...state.categories,
-                {
-                    id: `cat-${Date.now()}`,
-                    name,
-                    icon,
-                    color,
-                },
-            ],
-        })),
+            removeCategory: (id) =>
+                set((state) => ({
+                    categories: state.categories.filter((c) => c.id !== id),
+                    items: state.items.filter((i) => i.categoryId !== id),
+                })),
 
-    removeCategory: (id) =>
-        set((state) => ({
-            categories: state.categories.filter((c) => c.id !== id),
-            items: state.items.filter((i) => i.categoryId !== id),
-        })),
+            addItem: (item) =>
+                set((state) => ({
+                    items: [
+                        ...state.items,
+                        {
+                            ...item,
+                            id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                            completed: false,
+                            quantity: item.quantity ?? 1,
+                            addedAt: new Date().toISOString(),
+                        },
+                    ],
+                })),
 
-    addItem: (item) =>
-        set((state) => ({
-            items: [
-                ...state.items,
-                {
-                    ...item,
-                    id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                    completed: false,
-                    quantity: item.quantity ?? 1,
-                    addedAt: new Date().toISOString(),
-                },
-            ],
-        })),
+            removeItem: (id) =>
+                set((state) => ({
+                    items: state.items.filter((i) => i.id !== id),
+                })),
 
-    removeItem: (id) =>
-        set((state) => ({
-            items: state.items.filter((i) => i.id !== id),
-        })),
+            toggleItem: (id, completedBy) =>
+                set((state) => ({
+                    items: state.items.map((i) =>
+                        i.id === id
+                            ? {
+                                ...i,
+                                completed: !i.completed,
+                                completedBy: !i.completed ? completedBy : undefined,
+                            }
+                            : i
+                    ),
+                })),
 
-    toggleItem: (id, completedBy) =>
-        set((state) => ({
-            items: state.items.map((i) =>
-                i.id === id
-                    ? {
-                        ...i,
-                        completed: !i.completed,
-                        completedBy: !i.completed ? completedBy : undefined,
-                    }
-                    : i
-            ),
-        })),
+            updateItemQuantity: (id, quantity) =>
+                set((state) => ({
+                    items: state.items.map((i) =>
+                        i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i
+                    ),
+                })),
 
-    updateItemQuantity: (id, quantity) =>
-        set((state) => ({
-            items: state.items.map((i) =>
-                i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i
-            ),
-        })),
-
-    clearCompleted: () =>
-        set((state) => ({
-            items: state.items.filter((i) => !i.completed),
-        })),
-}));
+            clearCompleted: () =>
+                set((state) => ({
+                    items: state.items.filter((i) => !i.completed),
+                })),
+        }),
+        {
+            name: 'alenfinos-shopping',
+            partialize: (state) => ({
+                categories: state.categories,
+                items: state.items,
+            }),
+        }
+    )
+);
