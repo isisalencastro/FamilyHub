@@ -25,6 +25,7 @@ export interface ParcelamentoItem {
     progresso: string; // Ex: "3/7"
     isEvelise: boolean;
     paid?: boolean;
+    startMonth?: string;
 }
 
 export interface DividaItem {
@@ -77,30 +78,36 @@ export interface FamilyFinanceState {
 
     // CRUD Entradas
     addEntrada: (item: Omit<Entrada, 'id'>) => void;
+    updateEntrada: (id: string, item: Partial<Entrada>) => void;
     removeEntrada: (id: string) => void;
 
     // CRUD FixoMensal
     addFixo: (item: Omit<FixoItem, 'id' | 'paid'>) => void;
+    updateFixo: (id: string, item: Partial<FixoItem>) => void;
     removeFixo: (id: string) => void;
     toggleFixoPaid: (id: string) => void;
 
     // CRUD Creditos e Parcelamentos
     addCredito: (item: Omit<ParcelamentoItem, 'id'>) => void;
+    updateCredito: (id: string, item: Partial<ParcelamentoItem>) => void;
     removeCredito: (id: string) => void;
     toggleCongelado: (id: string) => void;
     toggleCreditoPaid: (id: string) => void;
 
     // CRUD Dividas
     addDividaAngelica: (item: Omit<DividaItem, 'id'>) => void;
+    updateDividaAngelica: (id: string, item: Partial<DividaItem>) => void;
     removeDividaAngelica: (id: string) => void;
     toggleDividaAngelicaPaid: (id: string) => void;
 
     addDividaIsis: (item: Omit<DividaItem, 'id'>) => void;
+    updateDividaIsis: (id: string, item: Partial<DividaItem>) => void;
     removeDividaIsis: (id: string) => void;
     toggleDividaIsisPaid: (id: string) => void;
 
     // CRUD Problemas
     addProblema: (item: Omit<ProblemaItem, 'id'>) => void;
+    updateProblema: (id: string, item: Partial<ProblemaItem>) => void;
     removeProblema: (id: string) => void;
     toggleProblemaPaid: (id: string) => void;
 
@@ -267,26 +274,32 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>()(
             },
 
             addEntrada: (item) => set((s) => ({ entradas: [...s.entradas, { ...item, id: generateId() }] })),
+            updateEntrada: (id, item) => set((s) => ({ entradas: s.entradas.map(e => e.id === id ? { ...e, ...item } : e) })),
             removeEntrada: (id) => set((s) => ({ entradas: s.entradas.filter(e => e.id !== id) })),
 
             addFixo: (item) => set((s) => ({ fixoMensal: [...s.fixoMensal, { ...item, paid: false, id: generateId() }] })),
+            updateFixo: (id, item) => set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, ...item } : f) })),
             removeFixo: (id) => set((s) => ({ fixoMensal: s.fixoMensal.filter(f => f.id !== id) })),
             toggleFixoPaid: (id) => set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, paid: !f.paid } : f) })),
 
             addCredito: (item) => set((s) => ({ creditos: [...s.creditos, { ...item, paid: false, id: generateId() }] })),
+            updateCredito: (id, item) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, ...item } : c) })),
             removeCredito: (id) => set((s) => ({ creditos: s.creditos.filter(c => c.id !== id) })),
             toggleCongelado: (id) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, congelado: !c.congelado } : c) })),
             toggleCreditoPaid: (id) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, paid: !c.paid } : c) })),
 
             addDividaAngelica: (item) => set((s) => ({ dividasAngelica: [...s.dividasAngelica, { ...item, paid: false, id: generateId() }] })),
+            updateDividaAngelica: (id, item) => set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, ...item } : d) })),
             removeDividaAngelica: (id) => set((s) => ({ dividasAngelica: s.dividasAngelica.filter(d => d.id !== id) })),
             toggleDividaAngelicaPaid: (id) => set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, paid: !d.paid } : d) })),
 
             addDividaIsis: (item) => set((s) => ({ dividasIsis: [...s.dividasIsis, { ...item, paid: false, id: generateId() }] })),
+            updateDividaIsis: (id, item) => set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, ...item } : d) })),
             removeDividaIsis: (id) => set((s) => ({ dividasIsis: s.dividasIsis.filter(d => d.id !== id) })),
             toggleDividaIsisPaid: (id) => set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, paid: !d.paid } : d) })),
 
             addProblema: (item) => set((s) => ({ problemas: [...s.problemas, { ...item, paid: false, id: generateId() }] })),
+            updateProblema: (id, item) => set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, ...item } : p) })),
             removeProblema: (id) => set((s) => ({ problemas: s.problemas.filter(p => p.id !== id) })),
             toggleProblemaPaid: (id) => set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, paid: !p.paid } : p) })),
         }),

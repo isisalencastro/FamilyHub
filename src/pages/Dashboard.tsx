@@ -53,13 +53,35 @@ export function Dashboard() {
     const isFamilia = activeWorkspace.id === 'familia';
     const famFinance = useFamilyFinanceStore();
 
-    // Calculate Dynamic Finance Summary for Family
-    const staticFamilyIncome = famFinance.entradas.reduce((acc, c) => acc + c.value, 0);
-    const staticFamilyExpense = famFinance.fixoMensal.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0) + famFinance.creditos.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.filter(x => !x.paid).reduce((acc, c) => acc + c.total, 0);
+    // Real calculations as in the Finance Panel footer:
+    const saldoCorrente = famFinance.entradas.filter(e => !e.isFixed).reduce((acc, c) => acc + c.value, 0); // Variaveis count
+    const saldoFixo = famFinance.entradas.filter(e => e.isFixed).reduce((acc, c) => acc + c.value, 0);
+    const despFixaMs = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0); // We count both paid and unpaid for the monthly overview
 
-    const displayIncome = isFamilia ? staticFamilyIncome : financeSummary.totalIncome;
-    const displayExpense = isFamilia ? staticFamilyExpense : financeSummary.totalExpense;
-    const displayBalance = isFamilia ? (staticFamilyIncome - staticFamilyExpense) : financeSummary.balance;
+    const creditosAtivos = famFinance.creditos.filter(c => c.type !== 'assinatura' && !c.congelado);
+    const currentMonthStr = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getFullYear()}`;
+
+    // To filter active credit card items
+    const isActiveThisMonth = (startMonth: string, currentMonth: string) => {
+        if (!startMonth) return true;
+        const [smM, smY] = startMonth.split('-').map(Number);
+        const [cmM, cmY] = currentMonth.split('-').map(Number);
+        if (smY < cmY) return true;
+        if (smY === cmY && smM <= cmM) return true;
+        return false;
+    };
+
+    const dispCreditosMs = creditosAtivos.filter(c => isActiveThisMonth(c.startMonth || '', currentMonthStr)).reduce((acc, c) => acc + c.value, 0);
+    const probsTotalMs = famFinance.problemas.reduce((acc, c) => acc + c.total, 0) || 0; // Se existir parcela de problema
+
+    const totalEntradasNoMes = saldoCorrente + saldoFixo;
+    const totalDespesasNoMes = despFixaMs + dispCreditosMs + probsTotalMs;
+    const saldoProjetadoLivre = totalEntradasNoMes - totalDespesasNoMes;
+
+    // Use these for display
+    const displayIncome = totalEntradasNoMes;
+    const displayExpense = totalDespesasNoMes;
+    const displayBalance = saldoProjetadoLivre;
 
     const taskCompletionRate = wsTasks.length > 0 ? Math.round((doneTasks.length / wsTasks.length) * 100) : 0;
 
@@ -207,79 +229,22 @@ export function Dashboard() {
                                 Ver tudo <ChevronRight size={14} />
                             </button>
                         </div>
-                        <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                            <div className="finance-summary-card income" style={{ flex: 1 }}>
-                                <div style={{ fontSize: '11px', color: 'var(--color-success)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Receita {isFamilia ? '(Salários+Vales)' : ''}
-                                </div>
-                                <div style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em' }}>{formatCurrency(displayIncome)}</div>
+                        <div style={{ padding: '16px', background: 'var(--color-bg-tertiary)', borderRadius: '12px', border: '1px solid var(--color-border-subtle)', margin: '12px', borderLeft: '4px solid var(--color-accent-primary)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Total Receitas no Mês</span>
+                                <span style={{ fontSize: '14px', color: 'var(--color-success)', fontWeight: 700 }}>{formatCurrency(displayIncome)}</span>
                             </div>
-                            <div className="finance-summary-card expense" style={{ flex: 1 }}>
-                                <div style={{ fontSize: '11px', color: 'var(--color-error)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Despesa {isFamilia ? '(Fixa)' : ''}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '16px' }}>
+                                <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Total Despesas no Mês</span>
+                                <span style={{ fontSize: '14px', color: 'var(--color-error)', fontWeight: 700 }}>{formatCurrency(displayExpense)}</span>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '4px' }}>SALDO PROJETADO RESTANTE (LIVRE)</div>
+                                <div style={{ fontSize: '24px', fontWeight: 800, color: displayBalance >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
+                                    {formatCurrency(displayBalance)}
                                 </div>
-                                <div style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em' }}>{formatCurrency(displayExpense)}</div>
                             </div>
                         </div>
-                        <div className="finance-summary-card balance">
-                            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                {isFamilia ? 'Fluxo Livre Planejado' : 'Saldo'}
-                            </div>
-                            <div style={{
-                                fontSize: '22px',
-                                fontWeight: 800,
-                                letterSpacing: '-0.02em',
-                                color: displayBalance >= 0 ? 'var(--color-success)' : 'var(--color-error)',
-                            }}>
-                                {formatCurrency(displayBalance)}
-                            </div>
-                        </div>
-
-                        {/* Mini Finance Bar Chart */}
-                        {isFamilia && (() => {
-                            const fixoTotal = famFinance.fixoMensal.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0);
-                            const creditoTotal = famFinance.creditos.filter(x => !x.paid).reduce((acc, c) => acc + c.value, 0) + famFinance.problemas.filter(x => !x.paid).reduce((acc, c) => acc + c.total, 0);
-                            const livre = Math.max(staticFamilyIncome - fixoTotal - creditoTotal, 0);
-                            const maxVal = Math.max(staticFamilyIncome, fixoTotal + creditoTotal + livre, 1);
-                            const bars = [
-                                { label: 'Receita', value: staticFamilyIncome, color: '#22c55e' },
-                                { label: 'Fixos', value: fixoTotal, color: '#ef4444' },
-                                { label: 'Créditos', value: creditoTotal, color: '#f59e0b' },
-                                { label: 'Livre', value: livre, color: '#8b5cf6' },
-                            ];
-                            return (
-                                <div style={{ marginTop: '16px', padding: '12px 0 0' }}>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '48px' }}>
-                                        {bars.map((bar) => {
-                                            const pct = Math.max((bar.value / maxVal) * 100, 4);
-                                            return (
-                                                <div key={bar.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                    <div
-                                                        style={{
-                                                            width: '100%',
-                                                            height: `${pct * 0.48}px`,
-                                                            minHeight: '4px',
-                                                            background: `linear-gradient(180deg, ${bar.color}, ${bar.color}80)`,
-                                                            borderRadius: '4px 4px 2px 2px',
-                                                            transition: 'height 0.5s ease',
-                                                        }}
-                                                        title={`${bar.label}: ${formatCurrency(bar.value)}`}
-                                                    />
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                                        {bars.map((bar) => (
-                                            <div key={bar.label} style={{ flex: 1, textAlign: 'center' }}>
-                                                <div style={{ fontSize: '10px', fontWeight: 600, color: bar.color }}>{bar.label}</div>
-                                                <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>{formatCurrency(bar.value)}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })()}
                     </div>
 
                     {/* Tasks */}

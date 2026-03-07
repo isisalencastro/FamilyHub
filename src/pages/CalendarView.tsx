@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useCalendarStore } from '@/stores/calendarStore';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users, User, RefreshCw, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 export function CalendarView() {
@@ -12,7 +12,6 @@ export function CalendarView() {
     const [title, setTitle] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [time, setTime] = useState('');
-    const [owner, setOwner] = useState<'isis' | 'angelica' | 'both'>('both');
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,7 +20,7 @@ export function CalendarView() {
             title: title.trim(),
             date,
             time: time || undefined,
-            owner
+            owner: 'both' // hardcoded value
         });
         setTitle('');
         setTime('');
@@ -54,12 +53,8 @@ export function CalendarView() {
         return result;
     }, [year, month, daysInMonth, firstDayOfMonth]);
 
-    const getOwnerBadgeColor = (owner: string) => {
-        switch (owner) {
-            case 'isis': return '#ec4899';
-            case 'angelica': return '#06b6d4';
-            default: return '#8b5cf6';
-        }
+    const getOwnerBadgeColor = () => {
+        return '#8b5cf6'; // Unified color
     };
 
     return (
@@ -108,21 +103,6 @@ export function CalendarView() {
                                     />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Responsável / E-mail</label>
-                                    <select
-                                        className="input"
-                                        value={owner}
-                                        onChange={(e) => setOwner(e.target.value as 'isis' | 'angelica' | 'both')}
-                                    >
-                                        <option value="both">Conjunto (familiaalenfino@gmail.com)</option>
-                                        <option value="isis">Isis (alencastroisis@gmail.com)</option>
-                                        <option value="angelica">Angélica (angedelcav@gmail.com)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Data *</label>
                                     <input
                                         type="date"
@@ -132,6 +112,9 @@ export function CalendarView() {
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Horário (Opcional)</label>
                                     <input
@@ -211,7 +194,7 @@ export function CalendarView() {
                                             <div key={ev.id} style={{
                                                 fontSize: '11px', padding: '4px', borderRadius: '4px',
                                                 background: 'var(--color-bg-tertiary)',
-                                                borderLeft: `3px solid ${getOwnerBadgeColor(ev.owner)}`,
+                                                borderLeft: `3px solid ${getOwnerBadgeColor()}`,
                                                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                                             }} title={ev.title}>
                                                 {ev.time && <span style={{ fontWeight: 600, marginRight: '4px' }}>{ev.time}</span>}

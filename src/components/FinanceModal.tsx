@@ -7,21 +7,37 @@ interface FinanceModalProps {
     type: FinanceModalType;
     onClose: () => void;
     onSubmit: (data: any) => void;
+    initialData?: any;
+    defaultCreditoType?: string;
 }
 
-export function FinanceModal({ type, onClose, onSubmit }: FinanceModalProps) {
+export function FinanceModal({ type, onClose, onSubmit, initialData, defaultCreditoType }: FinanceModalProps) {
     const firstInputRef = useRef<HTMLInputElement>(null);
     const [values, setValues] = useState<any>({});
 
     useEffect(() => {
         if (type) {
-            let defaultValues = {};
-            if (type === 'renda' || type === 'fixo') defaultValues = { isFixed: true };
-            if (type === 'credito') defaultValues = { type: 'assinatura', congelado: false, isEvelise: false };
-            setValues(defaultValues);
+            if (initialData) {
+                setValues(initialData);
+            } else {
+                let defaultValues = {};
+                if (type === 'renda' || type === 'fixo') defaultValues = { isFixed: true };
+                if (type === 'credito') {
+                    const date = new Date();
+                    let nextMonth = date.getMonth() + 2;
+                    let year = date.getFullYear();
+                    if (nextMonth > 12) {
+                        nextMonth = 1;
+                        year += 1;
+                    }
+                    const nextMonthStr = `${nextMonth.toString().padStart(2, '0')}-${year}`;
+                    defaultValues = { type: defaultCreditoType || 'assinatura', congelado: false, isEvelise: false, startMonth: nextMonthStr };
+                }
+                setValues(defaultValues);
+            }
             setTimeout(() => firstInputRef.current?.focus(), 50);
         }
-    }, [type]);
+    }, [type, initialData]);
 
     if (!type) return null;
 
@@ -78,12 +94,16 @@ export function FinanceModal({ type, onClose, onSubmit }: FinanceModalProps) {
 
     let title = '';
 
-    if (type === 'renda') title = '💰 Adicionar Receita';
-    if (type === 'fixo') title = '📋 Nova Saída (Débito)';
-    if (type === 'credito') title = '💳 Novo Crédito / Assinatura';
-    if (type === 'divida-isis') title = '⚠️ Nova Dívida (Isis)';
-    if (type === 'divida-angelica') title = '⚠️ Nova Dívida (Angélica)';
-    if (type === 'problema') title = '🔴 Novo Problema Financeiro';
+    if (type === 'renda') title = initialData ? '✏️ Editar Receita' : '💰 Adicionar Receita';
+    if (type === 'fixo') title = initialData ? '✏️ Editar Saída' : '📋 Nova Saída (Débito)';
+    if (type === 'credito') {
+        if (initialData) title = '✏️ Editar Crédito / Assinatura';
+        else if (defaultCreditoType === 'parcelamento') title = '💳 Novo Parcelamento';
+        else title = '💳 Nova Assinatura';
+    }
+    if (type === 'divida-isis') title = initialData ? '✏️ Editar Dívida (Isis)' : '⚠️ Nova Dívida (Isis)';
+    if (type === 'divida-angelica') title = initialData ? '✏️ Editar Dívida (Angélica)' : '⚠️ Nova Dívida (Angélica)';
+    if (type === 'problema') title = initialData ? '✏️ Editar Problema' : '🔴 Novo Problema Financeiro';
 
     return (
         <div
@@ -121,6 +141,11 @@ export function FinanceModal({ type, onClose, onSubmit }: FinanceModalProps) {
                     <>
                         {renderInput('name', 'Nome', 'Ex: TV, Spotify, Cooktop', false, true)}
                         {renderInput('value', 'Valor da Parcela (R$)', 'Ex: 65.00', true)}
+
+                        <div style={{ marginBottom: 14 }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '6px' }}>Mês da Primeira Cobrança</label>
+                            <input className="input" type="text" placeholder="Ex: 04-2026" value={values.startMonth || ''} onChange={(e) => setValues({ ...values, startMonth: e.target.value })} style={{ fontSize: '14px', width: '100%' }} />
+                        </div>
 
                         <div style={{ marginBottom: 14 }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '6px' }}>Tipo</label>

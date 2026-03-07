@@ -48,14 +48,14 @@ export function Sidebar() {
     const isFamilia = activeWorkspace.id === 'familia';
 
     const navItems = [
-        { path: '/', icon: Home, label: 'Dashboard', show: true },
-        { path: '/calendar', icon: CalendarIcon, label: 'Calendário', show: true },
-        { path: '/tasks', icon: CheckSquare, label: 'Tarefas', show: true },
-        { path: '/projects', icon: FolderKanban, label: 'Projetos', show: true },
-        { path: '/shopping', icon: ShoppingCart, label: 'Compras', show: isFamilia },
-        { path: '/finance', icon: Wallet, label: 'Finanças', show: isFamilia },
-        { path: '/docs', icon: FileText, label: 'Documentos', show: isFamilia },
-        { path: '/integrations', icon: LinkIcon, label: 'Integrações', show: isFamilia },
+        { path: '/', icon: Home, label: 'Dashboard' },
+        { path: '/calendar', icon: CalendarIcon, label: 'Calendário' },
+        { path: '/tasks', icon: CheckSquare, label: 'Tarefas' },
+        { path: '/projects', icon: FolderKanban, label: 'Projetos' },
+        { path: '/shopping', icon: ShoppingCart, label: 'Compras' },
+        { path: '/finance', icon: Wallet, label: 'Finanças' },
+        { path: '/docs', icon: FileText, label: 'Documentos' },
+        { path: '/integrations', icon: LinkIcon, label: 'Integrações' },
     ];
 
     return (
@@ -78,7 +78,6 @@ export function Sidebar() {
             {/* Navigation */}
             <nav className="nav-section">
                 {navItems
-                    .filter((item) => item.show)
                     .map((item) => (
                         <div
                             key={item.path}
@@ -111,44 +110,7 @@ export function Sidebar() {
 
                 <div style={{ height: '8px' }} />
 
-                <div className="workspace-label" style={{ padding: '8px 16px 4px', borderTop: '1px solid var(--color-border-default)', paddingTop: '16px' }}>
-                    Alternar Perfil
-                </div>
-
-                <div
-                    className={`nav-item ${activeWorkspace.id === 'familia' ? 'active' : ''}`}
-                    onClick={() => handleSwitchWorkspace('familia')}
-                    style={{ marginBottom: '4px' }}
-                >
-                    <div style={{
-                        width: 18, height: 18, borderRadius: '6px',
-                        background: 'linear-gradient(135deg, var(--color-ws-familia), #0891b2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <Users size={11} color="white" />
-                    </div>
-                    <span>Visão Geral</span>
-                </div>
-
-                <div
-                    className={`nav-item ${activeWorkspace.id === 'isis' ? 'active' : ''}`}
-                    onClick={() => handleSwitchWorkspace('isis')}
-                    style={{ marginBottom: '4px' }}
-                >
-                    <div className="workspace-avatar isis" style={{ width: 18, height: 18, fontSize: 10, margin: 0 }}>I</div>
-                    <span>Perfil de Isis</span>
-                </div>
-
-                <div
-                    className={`nav-item ${activeWorkspace.id === 'angelica' ? 'active' : ''}`}
-                    onClick={() => handleSwitchWorkspace('angelica')}
-                    style={{ marginBottom: '4px' }}
-                >
-                    <div className="workspace-avatar angelica" style={{ width: 18, height: 18, fontSize: 10, margin: 0 }}>A</div>
-                    <span>Perfil de Angélica</span>
-                </div>
-
-                <div style={{ height: '12px' }}></div>
+                {/* Removed workspace switcher */}
                 {/* Chat link */}
                 <div
                     className={`nav-item ${location.pathname === '/chat' ? 'active' : ''}`}
