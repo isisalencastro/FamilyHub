@@ -1,24 +1,17 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
-    MessageCircle,
     CheckSquare,
-    FolderKanban,
-    Bot,
     Settings,
     Wallet,
     FileText,
-    Link as LinkIcon,
     Calendar as CalendarIcon,
     Home,
-    Users,
-    User,
     Sun,
     Moon,
-    ShoppingCart
+    PawPrint
 } from 'lucide-react';
 import { useWorkspaceStore, WORKSPACES } from '@/stores/workspaceStore';
-import { useChatStore } from '@/stores/chatStore';
 import { useThemeStore } from '@/stores/themeStore';
 import type { Workspace } from '@/types';
 import { useEffect } from 'react';
@@ -27,23 +20,15 @@ export function Sidebar() {
     const location = useLocation();
     const navigate = useNavigate();
     const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
-    const { aiStatus, checkAiStatus, setActiveConversation } = useChatStore();
     const { theme, toggleTheme } = useThemeStore();
 
     const handleSwitchWorkspace = (wsId: string) => {
         if (wsId !== activeWorkspace.id) {
             const ws = WORKSPACES.find(w => w.id === wsId)!;
             setActiveWorkspace(ws);
-            setActiveConversation(null);
             navigate('/');
         }
     };
-
-    useEffect(() => {
-        checkAiStatus();
-        const interval = setInterval(checkAiStatus, 30000);
-        return () => clearInterval(interval);
-    }, [checkAiStatus]);
 
     const isFamilia = activeWorkspace.id === 'familia';
 
@@ -51,11 +36,9 @@ export function Sidebar() {
         { path: '/', icon: Home, label: 'Dashboard' },
         { path: '/calendar', icon: CalendarIcon, label: 'Calendário' },
         { path: '/tasks', icon: CheckSquare, label: 'Tarefas' },
-        { path: '/projects', icon: FolderKanban, label: 'Projetos' },
-        { path: '/shopping', icon: ShoppingCart, label: 'Compras' },
+        { path: '/pets', icon: PawPrint, label: 'Pets' },
         { path: '/finance', icon: Wallet, label: 'Finanças' },
         { path: '/docs', icon: FileText, label: 'Documentos' },
-        { path: '/integrations', icon: LinkIcon, label: 'Integrações' },
     ];
 
     return (
@@ -90,7 +73,7 @@ export function Sidebar() {
                     ))}
             </nav>
 
-            {/* Footer switcher and Chat */}
+            {/* Footer */}
             <div className="sidebar-footer" style={{ marginTop: 'auto' }}>
 
                 {/* Theme Toggle */}
@@ -109,29 +92,6 @@ export function Sidebar() {
                 </div>
 
                 <div style={{ height: '8px' }} />
-
-                {/* Removed workspace switcher */}
-                {/* Chat link */}
-                <div
-                    className={`nav-item ${location.pathname === '/chat' ? 'active' : ''}`}
-                    onClick={() => navigate('/chat')}
-                >
-                    <MessageCircle size={18} />
-                    <span>Chat com Ring</span>
-                </div>
-
-                <div className="ollama-status" style={{ marginTop: '8px' }}>
-                    <div
-                        className={`status-dot ${aiStatus === 'online' ? 'online' : 'offline'}`}
-                    />
-                    <span>
-                        {aiStatus === 'online'
-                            ? 'Ring conectada (OpenAI)'
-                            : aiStatus === 'checking'
-                                ? 'Verificando...'
-                                : 'API não configurada'}
-                    </span>
-                </div>
 
                 <div
                     className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}

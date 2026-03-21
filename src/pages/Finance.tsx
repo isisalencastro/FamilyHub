@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import {
     TrendingUp,
     TrendingDown,
@@ -9,21 +9,18 @@ import {
     CheckCircle2,
     Trash2,
     Plus,
-    Bot,
-    Calendar,
-    CalendarClock,
     Pencil
 } from 'lucide-react';
 import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
-import { useChatStore } from '@/stores/chatStore';
+
 import { FinanceModal, type FinanceModalType } from '@/components/FinanceModal';
 
 type Tab = 'PLANO' | 'CREDITO';
 
 export function Finance() {
-    const navigate = useNavigate();
+
     const store = useFamilyFinanceStore();
-    const chatStore = useChatStore();
+
 
     const [activeTab, setActiveTab] = useState<Tab>('PLANO');
     const [modalType, setModalType] = useState<FinanceModalType>(null);
@@ -63,23 +60,7 @@ export function Finance() {
         }
     };
 
-    const generateAIDiagnostic = () => {
-        if (chatStore.aiStatus !== 'online') {
-            alert("A Inteligência Artificial (Ring) não está configurada. Configure sua API Key da OpenAI nas Configurações!");
-            return;
-        }
 
-        const prompt = `Você atua como um educador financeiro empático e cirúrgico da Família Alenfinos. Baseado nos dados exatos atuais da família, apresente um diagnóstico claro sobre a saúde financeira. Faça críticas construtivas e aponte riscos.
-Renda Total: ${formatCurrency(totalRenda)}
-Renda Composição: ${store.entradas.map(s => s.name + ' - ' + formatCurrency(s.value)).join(', ')}
-Despesas Fixas Mensais Pendentes: ${formatCurrency(totalFixoPendente)} de um total de ${formatCurrency(totalFixoMensal)}
-Custos com Assinaturas/Parcelamentos (Cartões): ${formatCurrency(totalCreditosPendente)} de um total de ${formatCurrency(totalCreditosMensal)} (${store.creditos.map(p => p.name + '...').join('; ')})
-Dívidas Totais Angélica: ${formatCurrency(totalDivAngelica)}
-Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
-
-        chatStore.sendMessage('familia', prompt);
-        navigate('/chat');
-    };
 
     const isActiveThisMonth = (startMonthStr: string | undefined, currentMonthStr: string) => {
         if (!startMonthStr) return true;
@@ -136,13 +117,7 @@ Dívidas Totais Isis: ${formatCurrency(totalDivIsis)}`;
                             Hoje é <strong>{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</strong>
                         </p>
                     </div>
-                    <button
-                        className="btn btn-primary"
-                        onClick={generateAIDiagnostic}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, #8b5cf6, #ec4899)' }}
-                    >
-                        <Bot size={18} /> Diagnóstico Inteligente (IA)
-                    </button>
+
                 </div>
 
                 {/* Tabs */}

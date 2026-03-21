@@ -14,58 +14,6 @@ export interface Task {
     status: 'pending' | 'in_progress' | 'done';
     priority: 'high' | 'medium' | 'low';
     dueDate?: string;
-    projectId?: string;
-    createdAt: string;
-}
-
-export interface Project {
-    id: string;
-    workspaceId: string;
-    name: string;
-    description?: string;
-    color: string;
-    taskCount: number;
-    completedTasks: number;
-    columns: BoardColumn[];
-    createdAt: string;
-}
-
-export interface BoardColumn {
-    id: string;
-    title: string;
-    cards: BoardCard[];
-}
-
-export interface BoardCard {
-    id: string;
-    title: string;
-    description?: string;
-    color?: string;
-    labels?: string[];
-    createdAt: string;
-}
-
-export interface ChatMessage {
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    createdAt: string;
-}
-
-export interface Conversation {
-    id: string;
-    workspaceId: string;
-    title: string;
-    messages: ChatMessage[];
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface Memory {
-    id: string;
-    workspaceId: string;
-    content: string;
-    category: 'preference' | 'fact' | 'task' | 'relationship' | 'routine';
     createdAt: string;
 }
 

@@ -1,10 +1,18 @@
 import { useState, useMemo } from 'react';
 import { useCalendarStore } from '@/stores/calendarStore';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { useCalendarCommentsStore } from '@/stores/calendarCommentsStore';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, MessageCircle, Send, Trash2, User } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+const AUTHOR_CONFIG: Record<string, { displayName: string; avatar: string; color: string }> = {
+    isis: { displayName: 'Isis', avatar: 'I', color: '#8b5cf6' },
+    angelica: { displayName: 'Angélica', avatar: 'A', color: '#ec4899' },
+    familia: { displayName: 'Família', avatar: 'F', color: '#f59e0b' },
+};
 
 export function CalendarView() {
     const { events, addEvent, removeEvent } = useCalendarStore();
+    const { comments, addComment, removeComment } = useCalendarCommentsStore();
     const { activeWorkspace } = useWorkspaceStore();
     const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -12,6 +20,9 @@ export function CalendarView() {
     const [title, setTitle] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [time, setTime] = useState('');
+
+    // Comment form state
+    const [commentText, setCommentText] = useState('');
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,6 +36,20 @@ export function CalendarView() {
         setTitle('');
         setTime('');
         setIsAddingEvent(false);
+    };
+
+    const handleAddComment = () => {
+        if (!commentText.trim()) return;
+        const authorKey = activeWorkspace.id;
+        const authorCfg = AUTHOR_CONFIG[authorKey] || AUTHOR_CONFIG.familia;
+        addComment({
+            author: authorKey,
+            authorAvatar: authorCfg.avatar,
+            authorColor: authorCfg.color,
+            text: commentText.trim(),
+            date: '', // general comment, not tied to specific date
+        });
+        setCommentText('');
     };
 
     const isFamilia = activeWorkspace.id === 'familia';
@@ -55,6 +80,21 @@ export function CalendarView() {
 
     const getOwnerBadgeColor = () => {
         return '#8b5cf6'; // Unified color
+    };
+
+    const formatTimeAgo = (dateStr: string) => {
+        const now = new Date();
+        const commentDate = new Date(dateStr);
+        const diffMs = now.getTime() - commentDate.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMin < 1) return 'agora';
+        if (diffMin < 60) return `${diffMin}min atrás`;
+        if (diffHours < 24) return `${diffHours}h atrás`;
+        if (diffDays < 7) return `${diffDays}d atrás`;
+        return commentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     };
 
     return (
@@ -134,8 +174,7 @@ export function CalendarView() {
                     </div>
                 )}
 
-
-
+                {/* Calendar Card */}
                 <div className="card">
                     {/* Calendar Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid var(--color-border-default)' }}>
@@ -206,6 +245,261 @@ export function CalendarView() {
                             );
                         })}
                     </div>
+                </div>
+
+                {/* ─── Comments Section ─── */}
+                <div className="card" style={{ marginTop: '24px' }}>
+                    {/* Comments Header */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        marginBottom: '20px',
+                    }}>
+                        <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '12px',
+                            background: 'var(--color-accent-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <MessageCircle size={18} style={{ color: 'var(--color-accent-primary)' }} />
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                                Comentários
+                            </h3>
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', margin: 0 }}>
+                                Deixe notas e lembretes visíveis para toda a família
+                            </p>
+                        </div>
+                        <div style={{ marginLeft: 'auto' }}>
+                            <span style={{
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                padding: '4px 12px',
+                                borderRadius: 'var(--radius-full)',
+                                background: 'var(--color-bg-tertiary)',
+                                color: 'var(--color-text-secondary)',
+                            }}>
+                                {comments.length} {comments.length === 1 ? 'comentário' : 'comentários'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Comment Input */}
+                    <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start',
+                        marginBottom: comments.length > 0 ? '24px' : '0',
+                        padding: '16px',
+                        background: 'var(--color-bg-tertiary)',
+                        borderRadius: 'var(--radius-xl)',
+                        border: '1px solid var(--color-border-subtle)',
+                    }}>
+                        {/* Author Avatar */}
+                        <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            background: `linear-gradient(135deg, ${AUTHOR_CONFIG[activeWorkspace.id]?.color || '#8b5cf6'}, ${AUTHOR_CONFIG[activeWorkspace.id]?.color || '#8b5cf6'}cc)`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 800,
+                            fontSize: '14px',
+                            flexShrink: 0,
+                        }}>
+                            {AUTHOR_CONFIG[activeWorkspace.id]?.avatar || 'F'}
+                        </div>
+
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <textarea
+                                placeholder={`Escreva um comentário como ${AUTHOR_CONFIG[activeWorkspace.id]?.displayName || 'Família'}...`}
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleAddComment();
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    minHeight: '44px',
+                                    maxHeight: '120px',
+                                    resize: 'vertical',
+                                    padding: '10px 14px',
+                                    background: 'var(--color-bg-card)',
+                                    border: '1px solid var(--color-border-default)',
+                                    borderRadius: 'var(--radius-lg)',
+                                    color: 'var(--color-text-primary)',
+                                    fontSize: '13px',
+                                    fontFamily: 'inherit',
+                                    outline: 'none',
+                                    transition: 'border-color 150ms ease',
+                                    lineHeight: '1.5',
+                                }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                                    Pressione Enter para enviar · Shift+Enter para nova linha
+                                </span>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleAddComment}
+                                    disabled={!commentText.trim()}
+                                    style={{
+                                        padding: '8px 16px',
+                                        fontSize: '13px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        opacity: commentText.trim() ? 1 : 0.5,
+                                    }}
+                                >
+                                    <Send size={14} />
+                                    Enviar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Comment List */}
+                    {comments.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {comments.map((comment, index) => {
+                                const authorCfg = AUTHOR_CONFIG[comment.author] || { displayName: comment.author, avatar: comment.author[0]?.toUpperCase() || '?', color: '#6b7280' };
+                                const isOwn = comment.author === activeWorkspace.id;
+
+                                return (
+                                    <div
+                                        key={comment.id}
+                                        style={{
+                                            display: 'flex',
+                                            gap: '12px',
+                                            padding: '14px 16px',
+                                            borderRadius: 'var(--radius-lg)',
+                                            background: isOwn ? `${authorCfg.color}06` : 'transparent',
+                                            transition: 'background 150ms ease',
+                                            animation: index < 3 ? `fadeInUp 0.3s ease-out ${index * 0.05}s` : 'none',
+                                            animationFillMode: 'backwards',
+                                        }}
+                                    >
+                                        {/* Avatar */}
+                                        <div style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            background: `linear-gradient(135deg, ${authorCfg.color}, ${authorCfg.color}bb)`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'white',
+                                            fontWeight: 800,
+                                            fontSize: '13px',
+                                            flexShrink: 0,
+                                        }}>
+                                            {authorCfg.avatar}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                <span style={{
+                                                    fontSize: '13px',
+                                                    fontWeight: 700,
+                                                    color: authorCfg.color,
+                                                }}>
+                                                    {authorCfg.displayName}
+                                                </span>
+                                                <span style={{
+                                                    fontSize: '11px',
+                                                    color: 'var(--color-text-tertiary)',
+                                                }}>
+                                                    {formatTimeAgo(comment.createdAt)}
+                                                </span>
+                                                {isOwn && (
+                                                    <span style={{
+                                                        fontSize: '10px',
+                                                        fontWeight: 600,
+                                                        padding: '1px 6px',
+                                                        borderRadius: 'var(--radius-full)',
+                                                        background: `${authorCfg.color}15`,
+                                                        color: authorCfg.color,
+                                                    }}>
+                                                        você
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '13px',
+                                                color: 'var(--color-text-primary)',
+                                                lineHeight: '1.6',
+                                                whiteSpace: 'pre-wrap',
+                                                wordBreak: 'break-word',
+                                            }}>
+                                                {comment.text}
+                                            </div>
+                                        </div>
+
+                                        {/* Delete (own comments only) */}
+                                        {isOwn && (
+                                            <button
+                                                onClick={() => removeComment(comment.id)}
+                                                title="Excluir comentário"
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: 'var(--color-text-tertiary)',
+                                                    cursor: 'pointer',
+                                                    padding: '4px',
+                                                    opacity: 0.4,
+                                                    transition: 'opacity 150ms ease',
+                                                    flexShrink: 0,
+                                                    alignSelf: 'flex-start',
+                                                    marginTop: '2px',
+                                                }}
+                                                onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
+                                                onMouseLeave={(e) => { (e.target as HTMLElement).style.opacity = '0.4'; }}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {comments.length === 0 && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '32px 0 12px',
+                            color: 'var(--color-text-tertiary)',
+                        }}>
+                            <div style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '14px',
+                                background: 'var(--color-bg-tertiary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 12px',
+                            }}>
+                                <MessageCircle size={20} style={{ opacity: 0.5 }} />
+                            </div>
+                            <p style={{ fontSize: '13px', fontWeight: 500 }}>
+                                Nenhum comentário ainda. Comece a conversa!
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

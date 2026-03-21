@@ -38,7 +38,6 @@ export const useTaskStore = create<TaskState>()(
                             status: t.status as Task['status'],
                             priority: t.priority as Task['priority'],
                             dueDate: t.due_date,
-                            projectId: t.project_id,
                             createdAt: t.created_at,
                         })),
                     });
@@ -63,7 +62,6 @@ export const useTaskStore = create<TaskState>()(
                         status: taskData.status,
                         priority: taskData.priority,
                         due_date: taskData.dueDate || null,
-                        project_id: taskData.projectId || null,
                     })
                     .select()
                     .single();
@@ -77,7 +75,6 @@ export const useTaskStore = create<TaskState>()(
                         status: data.status,
                         priority: data.priority,
                         dueDate: data.due_date,
-                        projectId: data.project_id,
                         createdAt: data.created_at,
                     };
                     set((state) => ({ tasks: [task, ...state.tasks] }));
@@ -132,7 +129,6 @@ export const useTaskStore = create<TaskState>()(
                                     status: d.status,
                                     priority: d.priority,
                                     dueDate: d.due_date,
-                                    projectId: d.project_id,
                                     createdAt: d.created_at,
                                 };
                                 const exists = get().tasks.some((t) => t.id === task.id);

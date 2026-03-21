@@ -4,7 +4,7 @@
  * - Browser: Uses the Web Notifications API
  */
 
-import { isTauri } from '@/lib/ollamaClient';
+const isTauri = (): boolean => !!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__;
 
 let permissionGranted = false;
 

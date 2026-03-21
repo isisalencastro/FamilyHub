@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import {
-    ShoppingCart,
     Plus,
     Check,
     Trash2,
     Minus,
     AlertCircle,
-    ChevronRight,
     X,
     Sparkles,
 } from 'lucide-react';
@@ -313,58 +311,7 @@ export function Shopping() {
     };
 
     return (
-        <div className="main-content">
-            <div className="page-container">
-                {/* Header */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: '28px',
-                }}>
-                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                        <div style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '16px',
-                            background: 'linear-gradient(135deg, var(--color-accent-primary), #7c3aed)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: 'var(--shadow-glow)',
-                        }}>
-                            <ShoppingCart size={24} color="white" />
-                        </div>
-                        <div>
-                            <h1 style={{
-                                fontSize: '28px',
-                                fontWeight: 800,
-                                letterSpacing: '-0.03em',
-                                color: 'var(--color-text-primary)',
-                                margin: 0,
-                            }}>Lista de Compras</h1>
-                            <p style={{
-                                fontSize: '14px',
-                                color: 'var(--color-text-secondary)',
-                                margin: 0,
-                                marginTop: '2px',
-                            }}>
-                                Organize as compras da casa.
-                            </p>
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        {completedItems.length > 0 && (
-                            <button
-                                className="btn btn-secondary"
-                                onClick={clearCompleted}
-                                style={{ fontSize: '13px' }}
-                            >
-                                Limpar concluídos
-                            </button>
-                        )}
-                    </div>
-                </div>
+        <>
 
                 {/* Add Item Bar */}
                 <div style={{
@@ -825,7 +772,6 @@ export function Shopping() {
                         )}
                     </div>
                 )}
-            </div>
 
             {/* New Category Modal */}
             {showNewCategory && activeFilter !== 'all' && (
@@ -851,6 +797,6 @@ export function Shopping() {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }

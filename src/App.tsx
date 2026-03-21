@@ -2,20 +2,16 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
-import { Chat } from '@/pages/Chat';
 import { Tasks } from '@/pages/Tasks';
-import { Projects } from '@/pages/Projects';
 import { Finance } from '@/pages/Finance';
 import { Docs } from '@/pages/Docs';
-import { Integrations } from '@/pages/Integrations';
 import { CalendarView } from '@/pages/CalendarView';
 import { SettingsPage } from '@/pages/Settings';
-import { Shopping } from '@/pages/Shopping';
+import { Pets } from '@/pages/Pets';
+
 import { useTaskStore } from '@/stores/taskStore';
-import { useProjectStore } from '@/stores/projectStore';
 import { useFinanceStore } from '@/stores/financeStore';
 
-import { useChatStore } from '@/stores/chatStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
 
@@ -23,17 +19,9 @@ function App() {
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const subscribeTasksRealtime = useTaskStore((s) => s.subscribeRealtime);
 
-  const fetchProjects = useProjectStore((s) => s.fetchProjects);
-  const subscribeProjectsRealtime = useProjectStore((s) => s.subscribeRealtime);
-
   const fetchTransactions = useFinanceStore((s) => s.fetchTransactions);
   const subscribeFinanceRealtime = useFinanceStore((s) => s.subscribeRealtime);
 
-
-
-  const fetchConversations = useChatStore((s) => s.fetchConversations);
-  const fetchMemories = useChatStore((s) => s.fetchMemories);
-  const subscribeChatRealtime = useChatStore((s) => s.subscribeRealtime);
   const allTasks = useTaskStore((s) => s.tasks);
 
   useEffect(() => {
@@ -44,25 +32,15 @@ function App() {
 
     // Fetch all data on startup
     fetchTasks();
-    fetchProjects();
     fetchTransactions();
-
-    fetchConversations();
-    fetchMemories();
 
     // Subscribe to realtime changes
     const unsubTasks = subscribeTasksRealtime();
-    const unsubProjects = subscribeProjectsRealtime();
     const unsubFinance = subscribeFinanceRealtime();
-
-    const unsubChat = subscribeChatRealtime();
 
     return () => {
       unsubTasks();
-      unsubProjects();
       unsubFinance();
-
-      unsubChat();
     };
   }, []);
 
@@ -87,14 +65,12 @@ function App() {
         <Sidebar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/chat" element={<Chat />} />
           <Route path="/tasks" element={<Tasks />} />
-          <Route path="/projects" element={<Projects />} />
           <Route path="/finance" element={<Finance />} />
           <Route path="/docs" element={<Docs />} />
           <Route path="/calendar" element={<CalendarView />} />
-          <Route path="/integrations" element={<Integrations />} />
-          <Route path="/shopping" element={<Shopping />} />
+
+          <Route path="/pets" element={<Pets />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>
