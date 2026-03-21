@@ -1604,6 +1604,10 @@ select.input option {
   }
 }
 
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 /* =============================================
    Quick Access Cards on Dashboard
    ============================================= */

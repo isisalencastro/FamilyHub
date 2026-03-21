@@ -16,13 +16,13 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
 
 function App() {
-  const fetchTasks = useTaskStore((s) => s.fetchTasks);
-  const subscribeTasksRealtime = useTaskStore((s) => s.subscribeRealtime);
+  const fetchTasks = useTaskStore((s: any) => s.fetchTasks);
+  const subscribeTasksRealtime = useTaskStore((s: any) => s.subscribeRealtime);
 
-  const fetchTransactions = useFinanceStore((s) => s.fetchTransactions);
-  const subscribeFinanceRealtime = useFinanceStore((s) => s.subscribeRealtime);
+  const fetchTransactions = useFinanceStore((s: any) => s.fetchTransactions);
+  const subscribeFinanceRealtime = useFinanceStore((s: any) => s.subscribeRealtime);
 
-  const allTasks = useTaskStore((s) => s.tasks);
+  const allTasks = useTaskStore((s: any) => s.tasks);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {

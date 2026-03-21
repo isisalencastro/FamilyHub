@@ -26,6 +26,7 @@ import { useGoalStore } from '@/stores/goalStore';
 import { usePetStore } from '@/stores/petStore';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { CalendarWidget } from '@/components/CalendarWidget';
+import { NewsWidget } from '@/components/NewsWidget';
 
 export function Dashboard() {
     const navigate = useNavigate();
@@ -533,6 +534,11 @@ export function Dashboard() {
 
                     {/* Calendar Widget */}
                     {isFamilia && <CalendarWidget />}
+                </div>
+
+                {/* ─── News Widget ─── */}
+                <div style={{ marginTop: '16px' }}>
+                    <NewsWidget />
                 </div>
             </div>
         </div>
