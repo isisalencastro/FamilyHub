@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 /* =============================================
    Alenfinos Hub Design System
    Inspired by the provided design images
@@ -135,12 +135,6 @@ html[data-theme="light"] {
   --shadow-card: 0 1px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(124, 58, 237, 0.06);
   --shadow-card-hover: 0 6px 20px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(124, 58, 237, 0.1);
 }
-
-/* =============================================
-   Google Fonts
-   ============================================= */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 /* =============================================
    Base Styles
