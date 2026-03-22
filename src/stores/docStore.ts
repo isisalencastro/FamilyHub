@@ -34,6 +34,7 @@ interface DocState {
     openFile: (id: string) => Promise<void>;
     getDocsByCategory: (category: DocCategory) => DocMetadata[];
     searchDocs: (query: string) => DocMetadata[];
+    downloadFile: (id: string) => Promise<void>;
 }
 
 export const useDocStore = create<DocState>((set, get) => ({
@@ -106,6 +107,16 @@ export const useDocStore = create<DocState>((set, get) => ({
         } catch (err) {
             console.error('Erro ao abrir arquivo:', err);
             alert('Erro ao abrir o arquivo.');
+        }
+    },
+
+    downloadFile: async (id) => {
+        try {
+            const { downloadDocumentFile } = await import('@/lib/docDatabase');
+            await downloadDocumentFile(id);
+        } catch (err) {
+            console.error('Erro ao baixar arquivo:', err);
+            alert('Erro ao baixar o arquivo.');
         }
     },
 

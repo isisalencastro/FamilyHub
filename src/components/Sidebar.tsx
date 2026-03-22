@@ -9,7 +9,8 @@ import {
     Home,
     Sun,
     Moon,
-    PawPrint
+    PawPrint,
+    UtensilsCrossed
 } from 'lucide-react';
 import { useWorkspaceStore, WORKSPACES } from '@/stores/workspaceStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -36,6 +37,7 @@ export function Sidebar() {
         { path: '/', icon: Home, label: 'Dashboard' },
         { path: '/calendar', icon: CalendarIcon, label: 'Calendário' },
         { path: '/tasks', icon: CheckSquare, label: 'Tarefas' },
+        { path: '/menus', icon: UtensilsCrossed, label: 'Cardápios' },
         { path: '/pets', icon: PawPrint, label: 'Pets' },
         { path: '/finance', icon: Wallet, label: 'Finanças' },
         { path: '/docs', icon: FileText, label: 'Documentos' },

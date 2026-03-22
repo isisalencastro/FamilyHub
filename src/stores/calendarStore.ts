@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 export interface CalendarEvent {
     id: string;
     title: string;
+    description?: string;
     date: string; // YYYY-MM-DD
     time?: string; // HH:mm
     owner: 'isis' | 'angelica' | 'both';

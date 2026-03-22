@@ -23,7 +23,7 @@ export interface PetVaccination {
 export interface PetMedicalRecord {
     id: string;
     date: string;
-    type: 'consulta' | 'exame' | 'cirurgia' | 'emergencia' | 'outro';
+    type: 'consulta' | 'exame' | 'cirurgia' | 'emergencia' | 'observacao' | 'outro';
     description: string;
     veterinarian?: string;
     cost?: number;

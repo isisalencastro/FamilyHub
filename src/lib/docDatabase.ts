@@ -160,22 +160,23 @@ export async function openDocumentFile(id: string): Promise<void> {
         try {
             // Write blob to a temp file and open with OS
             const { writeFile, exists, mkdir } = await import('@tauri-apps/plugin-fs');
-            const { appDataDir } = await import('@tauri-apps/api/path');
+            const { appDataDir, join } = await import('@tauri-apps/api/path');
             const { openPath } = await import('@tauri-apps/plugin-opener');
 
             const appData = await appDataDir();
-            const tempDir = `${appData}temp_docs`;
+            const tempDir = await join(appData, 'temp_docs');
 
             const dirExists = await exists(tempDir);
             if (!dirExists) {
                 await mkdir(tempDir, { recursive: true });
             }
 
-            const tempPath = `${tempDir}\\${fileRecord.name}`;
+            const tempPath = await join(tempDir, fileRecord.name);
             const arrayBuffer = fileRecord.data;
             await writeFile(tempPath, new Uint8Array(arrayBuffer));
             await openPath(tempPath);
         } catch (err) {
+            console.error('Failed to open temp Tauri file:', err);
             // Fallback to blob URL
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -186,6 +187,48 @@ export async function openDocumentFile(id: string): Promise<void> {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
         setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+}
+
+/**
+ * Download a file using OS Save Dialog
+ */
+export async function downloadDocumentFile(id: string): Promise<void> {
+    const fileRecord = await getFileData(id);
+    if (!fileRecord) {
+        alert('Arquivo não encontrado no banco de dados.');
+        return;
+    }
+
+    const isTauri = !!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__;
+
+    if (isTauri) {
+        try {
+            const { save } = await import('@tauri-apps/plugin-dialog');
+            const { writeFile } = await import('@tauri-apps/plugin-fs');
+
+            const savePath = await save({
+                defaultPath: fileRecord.name,
+                title: 'Salvar Documento'
+            });
+
+            if (savePath) {
+                await writeFile(savePath, new Uint8Array(fileRecord.data));
+            }
+        } catch (err) {
+            console.error('Failed to save file in Tauri:', err);
+            alert('Não foi possível salvar o arquivo. Permissão negada ou processo cancelado.');
+        }
+    } else {
+        const blob = new Blob([fileRecord.data], { type: fileRecord.type || 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileRecord.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 

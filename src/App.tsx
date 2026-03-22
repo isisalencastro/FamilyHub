@@ -6,6 +6,7 @@ import { Tasks } from '@/pages/Tasks';
 import { Finance } from '@/pages/Finance';
 import { Docs } from '@/pages/Docs';
 import { CalendarView } from '@/pages/CalendarView';
+import { MenusView } from '@/pages/MenusView';
 import { SettingsPage } from '@/pages/Settings';
 import { Pets } from '@/pages/Pets';
 
@@ -69,6 +70,7 @@ function App() {
           <Route path="/finance" element={<Finance />} />
           <Route path="/docs" element={<Docs />} />
           <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/menus" element={<MenusView />} />
 
           <Route path="/pets" element={<Pets />} />
           <Route path="/settings" element={<SettingsPage />} />

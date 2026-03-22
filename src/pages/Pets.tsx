@@ -854,7 +854,7 @@ export function Pets() {
 
                                 {showAddRecord && (
                                     <div className="card" style={{ marginBottom: '16px', animation: 'scaleIn 0.2s ease-out' }}>
-                                        <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Novo Registro Médico</div>
+                                        <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Novo Registro / Nota</div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             <div>
                                                 <label style={labelStyle}>Tipo *</label>
@@ -863,6 +863,7 @@ export function Pets() {
                                                     <option value="exame">🔬 Exame</option>
                                                     <option value="cirurgia">🏥 Cirurgia</option>
                                                     <option value="emergencia">🚨 Emergência</option>
+                                                    <option value="observacao">📝 Observação</option>
                                                     <option value="outro">📋 Outro</option>
                                                 </select>
                                             </div>
@@ -874,14 +875,18 @@ export function Pets() {
                                                 <label style={labelStyle}>Descrição *</label>
                                                 <input style={inputStyle} placeholder="O que foi feito..." value={recDesc} onChange={(e) => setRecDesc(e.target.value)} />
                                             </div>
-                                            <div>
-                                                <label style={labelStyle}>Veterinário</label>
-                                                <input style={inputStyle} placeholder="Nome do vet..." value={recVet} onChange={(e) => setRecVet(e.target.value)} />
-                                            </div>
-                                            <div>
-                                                <label style={labelStyle}>Custo (R$)</label>
-                                                <input type="number" step="0.01" style={inputStyle} placeholder="0.00" value={recCost} onChange={(e) => setRecCost(e.target.value)} />
-                                            </div>
+                                            {recType !== 'observacao' && (
+                                                <>
+                                                    <div>
+                                                        <label style={labelStyle}>Veterinário</label>
+                                                        <input style={inputStyle} placeholder="Nome do vet..." value={recVet} onChange={(e) => setRecVet(e.target.value)} />
+                                                    </div>
+                                                    <div>
+                                                        <label style={labelStyle}>Custo (R$)</label>
+                                                        <input type="number" step="0.01" style={inputStyle} placeholder="0.00" value={recCost} onChange={(e) => setRecCost(e.target.value)} />
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
                                             <button className="btn btn-secondary" onClick={() => setShowAddRecord(false)}>Cancelar</button>
@@ -903,6 +908,7 @@ export function Pets() {
                                                 exame: { emoji: '🔬', color: 'var(--color-accent-primary)' },
                                                 cirurgia: { emoji: '🏥', color: 'var(--color-error)' },
                                                 emergencia: { emoji: '🚨', color: 'var(--color-warning)' },
+                                                observacao: { emoji: '📝', color: 'var(--color-success)' },
                                                 outro: { emoji: '📋', color: 'var(--color-text-tertiary)' },
                                             };
                                             const cfg = typeConfig[rec.type] || typeConfig.outro;

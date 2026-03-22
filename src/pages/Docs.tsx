@@ -14,7 +14,8 @@ import {
     Image,
     FileSpreadsheet,
     ScanText,
-    File as FileIcon
+    File as FileIcon,
+    Download
 } from 'lucide-react';
 import { useDocStore } from '@/stores/docStore';
 import type { DocCategory } from '@/types';
@@ -43,7 +44,7 @@ function getFileIcon(fileName: string) {
 }
 
 export function Docs() {
-    const { documents, categories, isLoading, loadDocuments, addDocument, deleteDocument, openFile, searchDocs } = useDocStore();
+    const { documents, categories, isLoading, loadDocuments, addDocument, deleteDocument, openFile, searchDocs, downloadFile } = useDocStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeCategory, setActiveCategory] = useState<DocCategory | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -368,14 +369,24 @@ export function Docs() {
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px' }}>
                                     {doc.hasFile && (
-                                        <button
-                                            className="btn btn-ghost"
-                                            onClick={() => handleOpenFile(doc.id)}
-                                            style={{ color: 'var(--color-text-tertiary)', padding: '4px' }}
-                                            title="Abrir arquivo"
-                                        >
-                                            <ExternalLink size={14} />
-                                        </button>
+                                        <>
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => handleOpenFile(doc.id)}
+                                                style={{ color: 'var(--color-text-tertiary)', padding: '4px' }}
+                                                title="Visualizar arquivo"
+                                            >
+                                                <ExternalLink size={14} />
+                                            </button>
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => downloadFile(doc.id)}
+                                                style={{ color: 'var(--color-text-tertiary)', padding: '4px' }}
+                                                title="Baixar para o Computador"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                        </>
                                     )}
                                     <button
                                         className="btn btn-ghost"

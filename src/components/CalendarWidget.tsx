@@ -1,23 +1,27 @@
 import { useState } from 'react';
 import { useCalendarStore } from '@/stores/calendarStore';
-import { Calendar, Trash2, Plus, Clock } from 'lucide-react';
+import { Calendar, Trash2, Plus, Clock, AlignLeft, X } from 'lucide-react';
 
 export function CalendarWidget() {
     const { events, addEvent, removeEvent } = useCalendarStore();
     const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [time, setTime] = useState('');
+    const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || !date) return;
         addEvent({
             title: title.trim(),
+            description: description.trim() || undefined,
             date,
             time: time || undefined,
             owner: 'both' // owner is hardcoded now
         });
         setTitle('');
+        setDescription('');
         setTime('');
     };
 
@@ -38,7 +42,7 @@ export function CalendarWidget() {
             <div className="card-header">
                 <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Calendar size={18} style={{ color: 'var(--color-accent-primary)' }} />
-                    Calendário Compartilhado
+                    Calendário
                 </h2>
             </div>
 
@@ -51,6 +55,13 @@ export function CalendarWidget() {
                     onChange={e => setTitle(e.target.value)}
                     style={{ background: 'transparent', border: 'none', padding: '0 4px', fontSize: '14px', boxShadow: 'none' }}
                     required
+                />
+                <textarea
+                    placeholder="Descrição (opcional)..."
+                    className="input"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--color-border-subtle)', borderRadius: '6px', padding: '6px 8px', fontSize: '13px', minHeight: '44px', resize: 'vertical' }}
                 />
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '10px' }}>
                     <input
@@ -98,14 +109,20 @@ export function CalendarWidget() {
                         const monthName = months[parseInt(month) - 1];
 
                         return (
-                            <div key={ev.id} style={{
+                            <div key={ev.id} 
+                                onClick={() => setSelectedEvent(ev)}
+                                style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 padding: '10px 12px', background: 'var(--color-bg-tertiary)',
                                 borderRadius: '12px',
                                 border: '1px solid var(--color-border-subtle)',
+                                cursor: 'pointer',
                                 transition: 'all 0.2s ease',
                                 animation: `fadeIn 0.3s ease-out ${i * 0.05}s backwards`
-                            }}>
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-hover)'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg-tertiary)'; }}
+                            >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
                                     <div style={{
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -140,6 +157,98 @@ export function CalendarWidget() {
                     })
                 )}
             </div>
+
+            {selectedEvent && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 9999, padding: '20px'
+                }} onClick={() => setSelectedEvent(null)}>
+                    <div style={{
+                        background: 'var(--color-bg-primary)',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '400px',
+                        padding: '32px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        position: 'relative'
+                    }} onClick={e => e.stopPropagation()}>
+                        <button
+                            onClick={() => setSelectedEvent(null)}
+                            style={{
+                                position: 'absolute', top: '24px', right: '24px',
+                                background: 'var(--color-bg-tertiary)', border: 'none',
+                                width: '32px', height: '32px', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', color: 'var(--color-text-secondary)',
+                                transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'var(--color-bg-tertiary)'}
+                        >
+                            <X size={16} />
+                        </button>
+
+                        <div style={{
+                            width: '48px', height: '48px', borderRadius: '16px',
+                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15))',
+                            color: 'var(--color-accent-primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginBottom: '20px'
+                        }}>
+                            <Calendar size={24} />
+                        </div>
+
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '16px', lineHeight: 1.2 }}>
+                            {selectedEvent.title}
+                        </h2>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 500 }}>
+                                <Calendar size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                                {new Date(selectedEvent.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 500 }}>
+                                <Clock size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                                {selectedEvent.time || 'O dia todo'}
+                            </div>
+                        </div>
+
+                        {selectedEvent.description && (
+                            <div style={{ marginBottom: '32px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '14px' }}>
+                                    <AlignLeft size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                                    Descrição
+                                </div>
+                                <p style={{
+                                    fontSize: '15px', color: 'var(--color-text-secondary)',
+                                    lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0
+                                }}>
+                                    {selectedEvent.description}
+                                </p>
+                            </div>
+                        )}
+
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => {
+                                removeEvent(selectedEvent.id);
+                                setSelectedEvent(null);
+                            }}
+                            style={{
+                                width: '100%', color: 'var(--color-error)', border: '1px solid var(--color-error)',
+                                background: 'transparent'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                            <Trash2 size={16} /> Excluir Evento
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

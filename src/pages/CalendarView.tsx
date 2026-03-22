@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useCalendarStore } from '@/stores/calendarStore';
 import { useCalendarCommentsStore } from '@/stores/calendarCommentsStore';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, MessageCircle, Send, Trash2, User } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, MessageCircle, Send, Trash2, User, AlignLeft, X, Clock } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 const AUTHOR_CONFIG: Record<string, { displayName: string; avatar: string; color: string }> = {
@@ -18,8 +18,10 @@ export function CalendarView() {
 
     const [isAddingEvent, setIsAddingEvent] = useState(false);
     const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [time, setTime] = useState('');
+    const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
     // Comment form state
     const [commentText, setCommentText] = useState('');
@@ -36,11 +38,13 @@ export function CalendarView() {
         if (!title.trim() || !date) return;
         addEvent({
             title: title.trim(),
+            description: description.trim() || undefined,
             date,
             time: time || undefined,
             owner: 'both' // hardcoded value
         });
         setTitle('');
+        setDescription('');
         setTime('');
         setIsAddingEvent(false);
     };
@@ -115,7 +119,7 @@ export function CalendarView() {
                         </div>
                         <p className="page-subtitle">
                             Acompanhe eventos, consultas e reuniões.{' '}
-                            {!isFamilia && 'Mudando para a Visão Geral você pode ver os eventos compartilhados.'}
+                            {!isFamilia && 'Mudando para a Visão Geral você pode ver todos os eventos.'}
                         </p>
                     </div>
 
@@ -162,14 +166,26 @@ export function CalendarView() {
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Horário (Opcional)</label>
-                                    <input
-                                        type="time"
-                                        className="input"
-                                        value={time}
-                                        onChange={e => setTime(e.target.value)}
-                                    />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Horário (Opcional)</label>
+                                        <input
+                                            type="time"
+                                            className="input"
+                                            value={time}
+                                            onChange={e => setTime(e.target.value)}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Descrição (Opcional)</label>
+                                        <textarea
+                                            className="input"
+                                            placeholder="Ex: Não esqueça os documentos..."
+                                            value={description}
+                                            onChange={e => setDescription(e.target.value)}
+                                            style={{ minHeight: '60px', resize: 'vertical' }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -237,12 +253,15 @@ export function CalendarView() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         {dayEvents.map(ev => (
-                                            <div key={ev.id} style={{
+                                            <div key={ev.id} 
+                                                onClick={() => setSelectedEvent(ev)}
+                                                style={{
                                                 fontSize: '11px', padding: '4px', borderRadius: '4px',
                                                 background: 'var(--color-bg-tertiary)',
                                                 borderLeft: `3px solid ${getOwnerBadgeColor()}`,
-                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                                            }} title={ev.title}>
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                cursor: 'pointer', transition: 'background 0.2s ease'
+                                            }} title="Clique para ver detalhes" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-bg-hover)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-bg-tertiary)')}>
                                                 {ev.time && <span style={{ fontWeight: 600, marginRight: '4px' }}>{ev.time}</span>}
                                                 {ev.title}
                                             </div>
@@ -531,6 +550,99 @@ export function CalendarView() {
                     )}
                 </div>
             </div>
+
+            {/* Event Details Modal */}
+            {selectedEvent && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 9999, padding: '20px'
+                }} onClick={() => setSelectedEvent(null)}>
+                    <div style={{
+                        background: 'var(--color-bg-primary)',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '400px',
+                        padding: '32px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        position: 'relative'
+                    }} onClick={e => e.stopPropagation()}>
+                        <button
+                            onClick={() => setSelectedEvent(null)}
+                            style={{
+                                position: 'absolute', top: '24px', right: '24px',
+                                background: 'var(--color-bg-tertiary)', border: 'none',
+                                width: '32px', height: '32px', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', color: 'var(--color-text-secondary)',
+                                transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'var(--color-bg-tertiary)'}
+                        >
+                            <X size={16} />
+                        </button>
+
+                        <div style={{
+                            width: '48px', height: '48px', borderRadius: '16px',
+                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15))',
+                            color: 'var(--color-accent-primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginBottom: '20px'
+                        }}>
+                            <CalendarIcon size={24} />
+                        </div>
+
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '16px', lineHeight: 1.2 }}>
+                            {selectedEvent.title}
+                        </h2>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 500 }}>
+                                <CalendarIcon size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                                {new Date(selectedEvent.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 500 }}>
+                                <Clock size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                                {selectedEvent.time || 'O dia todo'}
+                            </div>
+                        </div>
+
+                        {selectedEvent.description && (
+                            <div style={{ marginBottom: '32px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '14px' }}>
+                                    <AlignLeft size={16} style={{ color: 'var(--color-accent-primary)' }} />
+                                    Descrição
+                                </div>
+                                <p style={{
+                                    fontSize: '15px', color: 'var(--color-text-secondary)',
+                                    lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0
+                                }}>
+                                    {selectedEvent.description}
+                                </p>
+                            </div>
+                        )}
+
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => {
+                                removeEvent(selectedEvent.id);
+                                setSelectedEvent(null);
+                            }}
+                            style={{
+                                width: '100%', color: 'var(--color-error)', border: '1px solid var(--color-error)',
+                                background: 'transparent'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                            <Trash2 size={16} /> Excluir Evento
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
