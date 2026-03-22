@@ -86,7 +86,7 @@ export function Finance() {
     const totalAssinaturasPendente = activeAssinaturas.filter(c => !c.paid && !c.congelado).reduce((a, b) => a + b.value, 0);
     const totalProblemasPendente = store.problemas.filter(p => !p.paid).reduce((a, b) => a + b.total, 0);
 
-    const saldoLivreReal = totalRenda - totalFixoMensal - totalCreditosMensal - totalProblemasMensal;
+    const saldoLivreReal = totalRenda - totalFixoMensal - totalCreditosMensal - totalAssinaturasMensal - totalProblemasMensal;
 
     const totalDivAngelica = store.dividasAngelica.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
     const totalDivIsis = store.dividasIsis.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
@@ -236,7 +236,7 @@ export function Finance() {
                                 })}
 
                                 <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                                    <span>TOTAL DE GASTOS DO MÊS</span><span style={{ color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixoMensal + totalCreditosMensal)}</span>
+                                    <span>TOTAL DE GASTOS DO MÊS</span><span style={{ color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixoMensal + totalCreditosMensal + totalAssinaturasMensal)}</span>
                                 </div>
                             </div>
                         </div>
@@ -403,7 +403,7 @@ export function Finance() {
                     <div style={{ gridColumn: '1 / -1', padding: '20px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                             <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Total Receitas no Mês: {formatCurrency(totalRenda)}</div>
-                            <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Total Despesas no Mês: {formatCurrency(totalFixoMensal + totalCreditosMensal + totalProblemasMensal)}</div>
+                            <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Total Despesas no Mês: {formatCurrency(totalFixoMensal + totalCreditosMensal + totalAssinaturasMensal + totalProblemasMensal)}</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 4 }}>SALDO PROJETADO RESTANTE (LIVRE)</div>

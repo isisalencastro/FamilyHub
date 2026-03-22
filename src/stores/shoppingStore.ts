@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface ShoppingItem {
     id: string;
@@ -17,20 +17,23 @@ export interface ShoppingItem {
 export interface ShoppingCategory {
     id: string;
     name: string;
-    icon: string; // emoji
+    icon: string;
     color: string;
 }
 
 interface ShoppingState {
     categories: ShoppingCategory[];
     items: ShoppingItem[];
-    addCategory: (name: string, icon: string, color: string) => void;
-    removeCategory: (id: string) => void;
-    addItem: (item: Omit<ShoppingItem, 'id' | 'addedAt' | 'completed' | 'quantity'> & { quantity?: number }) => void;
-    removeItem: (id: string) => void;
-    toggleItem: (id: string, completedBy?: string) => void;
-    updateItemQuantity: (id: string, quantity: number) => void;
-    clearCompleted: () => void;
+    isLoading: boolean;
+    fetchData: () => Promise<void>;
+    addCategory: (name: string, icon: string, color: string) => Promise<void>;
+    removeCategory: (id: string) => Promise<void>;
+    addItem: (item: Omit<ShoppingItem, 'id' | 'addedAt' | 'completed' | 'quantity'> & { quantity?: number }) => Promise<void>;
+    removeItem: (id: string) => Promise<void>;
+    toggleItem: (id: string, completedBy?: string) => Promise<void>;
+    updateItemQuantity: (id: string, quantity: number) => Promise<void>;
+    clearCompleted: () => Promise<void>;
+    subscribeRealtime: () => () => void;
 }
 
 const defaultCategories: ShoppingCategory[] = [
@@ -40,81 +43,169 @@ const defaultCategories: ShoppingCategory[] = [
     { id: 'others', name: 'Outros', icon: '📦', color: '#f59e0b' },
 ];
 
-export const useShoppingStore = create<ShoppingState>()(
-    persist(
-        (set) => ({
-            categories: defaultCategories,
-            items: [],
+const mapItemFromDB = (row: any): ShoppingItem => ({
+    id: row.id,
+    name: row.name,
+    note: row.note,
+    categoryId: row.category_id,
+    completed: row.completed,
+    quantity: row.quantity,
+    priority: row.priority,
+    assignedTo: row.assigned_to,
+    addedAt: row.added_at,
+    completedBy: row.completed_by,
+});
 
-            addCategory: (name, icon, color) =>
-                set((state) => ({
-                    categories: [
-                        ...state.categories,
-                        {
-                            id: `cat-${Date.now()}`,
-                            name,
-                            icon,
-                            color,
-                        },
-                    ],
-                })),
+const mapCategoryFromDB = (row: any): ShoppingCategory => ({
+    id: row.id,
+    name: row.name,
+    icon: row.icon,
+    color: row.color,
+});
 
-            removeCategory: (id) =>
-                set((state) => ({
-                    categories: state.categories.filter((c) => c.id !== id),
-                    items: state.items.filter((i) => i.categoryId !== id),
-                })),
+export const useShoppingStore = create<ShoppingState>((set, get) => ({
+    categories: defaultCategories,
+    items: [],
+    isLoading: false,
 
-            addItem: (item) =>
-                set((state) => ({
-                    items: [
-                        ...state.items,
-                        {
-                            ...item,
-                            id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                            completed: false,
-                            quantity: item.quantity ?? 1,
-                            addedAt: new Date().toISOString(),
-                        },
-                    ],
-                })),
+    fetchData: async () => {
+        if (!isSupabaseConfigured()) return;
+        set({ isLoading: true });
 
-            removeItem: (id) =>
-                set((state) => ({
-                    items: state.items.filter((i) => i.id !== id),
-                })),
+        const [catRes, itemRes] = await Promise.all([
+            supabase.from('shopping_categories').select('*'),
+            supabase.from('shopping_items').select('*').order('added_at', { ascending: false }),
+        ]);
 
-            toggleItem: (id, completedBy) =>
-                set((state) => ({
-                    items: state.items.map((i) =>
-                        i.id === id
-                            ? {
-                                ...i,
-                                completed: !i.completed,
-                                completedBy: !i.completed ? completedBy : undefined,
-                            }
-                            : i
-                    ),
-                })),
-
-            updateItemQuantity: (id, quantity) =>
-                set((state) => ({
-                    items: state.items.map((i) =>
-                        i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i
-                    ),
-                })),
-
-            clearCompleted: () =>
-                set((state) => ({
-                    items: state.items.filter((i) => !i.completed),
-                })),
-        }),
-        {
-            name: 'alenfinos-shopping',
-            partialize: (state) => ({
-                categories: state.categories,
-                items: state.items,
-            }),
+        if (!catRes.error && catRes.data) {
+            set({ categories: catRes.data.length > 0 ? catRes.data.map(mapCategoryFromDB) : defaultCategories });
         }
-    )
-);
+        if (!itemRes.error && itemRes.data) {
+            set({ items: itemRes.data.map(mapItemFromDB) });
+        }
+        set({ isLoading: false });
+    },
+
+    addCategory: async (name, icon, color) => {
+        const id = `cat-${Date.now()}`;
+        const cat: ShoppingCategory = { id, name, icon, color };
+
+        set((state) => ({ categories: [...state.categories, cat] }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('shopping_categories').insert({ id, name, icon, color });
+        }
+    },
+
+    removeCategory: async (id) => {
+        set((state) => ({
+            categories: state.categories.filter((c) => c.id !== id),
+            items: state.items.filter((i) => i.categoryId !== id),
+        }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('shopping_items').delete().eq('category_id', id);
+            await supabase.from('shopping_categories').delete().eq('id', id);
+        }
+    },
+
+    addItem: async (item) => {
+        const id = `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const newItem: ShoppingItem = {
+            ...item,
+            id,
+            completed: false,
+            quantity: item.quantity ?? 1,
+            addedAt: new Date().toISOString(),
+        };
+
+        set((state) => ({ items: [...state.items, newItem] }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('shopping_items').insert({
+                id: newItem.id,
+                name: newItem.name,
+                note: newItem.note || null,
+                category_id: newItem.categoryId,
+                completed: false,
+                quantity: newItem.quantity,
+                priority: newItem.priority,
+                assigned_to: newItem.assignedTo || null,
+                added_at: newItem.addedAt,
+                completed_by: null,
+            });
+        }
+    },
+
+    removeItem: async (id) => {
+        set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('shopping_items').delete().eq('id', id);
+        }
+    },
+
+    toggleItem: async (id, completedBy) => {
+        const item = get().items.find((i) => i.id === id);
+        if (!item) return;
+
+        const newCompleted = !item.completed;
+        const newCompletedBy = newCompleted ? completedBy : undefined;
+
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === id ? { ...i, completed: newCompleted, completedBy: newCompletedBy } : i
+            ),
+        }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('shopping_items').update({
+                completed: newCompleted,
+                completed_by: newCompletedBy || null,
+            }).eq('id', id);
+        }
+    },
+
+    updateItemQuantity: async (id, quantity) => {
+        const newQty = Math.max(1, quantity);
+        set((state) => ({
+            items: state.items.map((i) => (i.id === id ? { ...i, quantity: newQty } : i)),
+        }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('shopping_items').update({ quantity: newQty }).eq('id', id);
+        }
+    },
+
+    clearCompleted: async () => {
+        const completedIds = get().items.filter((i) => i.completed).map((i) => i.id);
+        set((state) => ({ items: state.items.filter((i) => !i.completed) }));
+
+        if (isSupabaseConfigured() && completedIds.length > 0) {
+            await supabase.from('shopping_items').delete().in('id', completedIds);
+        }
+    },
+
+    subscribeRealtime: () => {
+        if (!isSupabaseConfigured()) return () => {};
+
+        const ch1 = supabase
+            .channel('shopping-items-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, () => {
+                get().fetchData();
+            })
+            .subscribe();
+
+        const ch2 = supabase
+            .channel('shopping-categories-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_categories' }, () => {
+                get().fetchData();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(ch1);
+            supabase.removeChannel(ch2);
+        };
+    },
+}));

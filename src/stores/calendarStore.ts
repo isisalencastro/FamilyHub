@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface CalendarEvent {
     id: string;
@@ -12,31 +12,85 @@ export interface CalendarEvent {
 
 interface CalendarState {
     events: CalendarEvent[];
-    addEvent: (event: Omit<CalendarEvent, 'id'>) => void;
-    removeEvent: (id: string) => void;
+    isLoading: boolean;
+    fetchEvents: () => Promise<void>;
+    addEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<void>;
+    removeEvent: (id: string) => Promise<void>;
+    subscribeRealtime: () => () => void;
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 9);
+const generateId = () => `evt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-const today = new Date().toISOString().split('T')[0];
+const mapFromDB = (row: any): CalendarEvent => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    date: row.date,
+    time: row.time,
+    owner: row.owner,
+});
 
-export const useCalendarStore = create<CalendarState>()(
-    persist(
-        (set) => ({
-            events: [
-                { id: '1', title: 'Reunião do time', date: today, time: '14:00', owner: 'isis' },
-                { id: '2', title: 'Consulta / Exame', date: today, time: '09:30', owner: 'angelica' },
-                { id: '3', title: 'Dia de Mercado', date: today, owner: 'both' },
-            ],
-            addEvent: (event) => set((state) => ({
-                events: [...state.events, { ...event, id: generateId() }].sort((a, b) => new Date(`${a.date}T${a.time || '00:00'}`).getTime() - new Date(`${b.date}T${b.time || '00:00'}`).getTime())
-            })),
-            removeEvent: (id) => set((state) => ({
-                events: state.events.filter((e) => e.id !== id)
-            })),
-        }),
-        {
-            name: 'calendar-storage',
+export const useCalendarStore = create<CalendarState>((set, get) => ({
+    events: [],
+    isLoading: false,
+
+    fetchEvents: async () => {
+        if (!isSupabaseConfigured()) return;
+        set({ isLoading: true });
+
+        const { data, error } = await supabase
+            .from('calendar_events')
+            .select('*')
+            .order('date', { ascending: true });
+
+        if (!error && data) {
+            set({ events: data.map(mapFromDB) });
         }
-    )
-);
+        set({ isLoading: false });
+    },
+
+    addEvent: async (event) => {
+        const id = generateId();
+        const newEvent: CalendarEvent = { ...event, id };
+
+        set((state) => ({
+            events: [...state.events, newEvent].sort(
+                (a, b) => new Date(`${a.date}T${a.time || '00:00'}`).getTime() - new Date(`${b.date}T${b.time || '00:00'}`).getTime()
+            ),
+        }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('calendar_events').insert({
+                id,
+                title: event.title,
+                description: event.description || null,
+                date: event.date,
+                time: event.time || null,
+                owner: event.owner,
+            });
+        }
+    },
+
+    removeEvent: async (id) => {
+        set((state) => ({ events: state.events.filter((e) => e.id !== id) }));
+
+        if (isSupabaseConfigured()) {
+            await supabase.from('calendar_events').delete().eq('id', id);
+        }
+    },
+
+    subscribeRealtime: () => {
+        if (!isSupabaseConfigured()) return () => {};
+
+        const channel = supabase
+            .channel('calendar-events-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => {
+                get().fetchEvents();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    },
+}));

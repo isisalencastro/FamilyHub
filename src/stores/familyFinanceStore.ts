@@ -1,18 +1,18 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface Entrada {
     id: string;
     name: string;
     value: number;
-    isFixed: boolean; // se false, é renda variável e sai na virada do mês
+    isFixed: boolean;
 }
 
 export interface FixoItem {
     id: string;
     name: string;
     value: number;
-    isFixed: boolean; // se false, é despesa pontual do mês
+    isFixed: boolean;
     paid: boolean;
 }
 
@@ -22,7 +22,7 @@ export interface ParcelamentoItem {
     value: number;
     type: 'debito' | 'credito' | 'parcelamento' | 'assinatura';
     congelado: boolean;
-    progresso: string; // Ex: "3/7"
+    progresso: string;
     isEvelise: boolean;
     paid?: boolean;
     startMonth?: string;
@@ -54,65 +54,59 @@ export interface DiaTermometro {
 }
 
 export interface MesTermometro {
-    mesAno: string; // Ex: "03-2026"
-    nome: string; // Ex: "Março"
+    mesAno: string;
+    nome: string;
     dias: DiaTermometro[];
     saldoInicial: number;
 }
 
 export interface FamilyFinanceState {
-    currentMonth: string; // "MM-YYYY"
-
+    currentMonth: string;
     entradas: Entrada[];
     fixoMensal: FixoItem[];
     creditos: ParcelamentoItem[];
     dividasAngelica: DividaItem[];
     dividasIsis: DividaItem[];
     problemas: ProblemaItem[];
+    termometroFiles: Record<string, MesTermometro>;
+    isLoading: boolean;
 
-    termometroFiles: Record<string, MesTermometro>; // chave é "MM-YYYY"
-
-    // Funções de Inicialização / Virada de Mês
+    fetchAll: () => Promise<void>;
     checkMonthTurnover: () => void;
-    updateTermometroDay: (mesAno: string, dia: number, field: keyof DiaTermometro, value: number | null) => void;
+    updateTermometroDay: (mesAno: string, dia: number, field: keyof DiaTermometro, value: number | null) => Promise<void>;
 
-    // CRUD Entradas
-    addEntrada: (item: Omit<Entrada, 'id'>) => void;
-    updateEntrada: (id: string, item: Partial<Entrada>) => void;
-    removeEntrada: (id: string) => void;
+    addEntrada: (item: Omit<Entrada, 'id'>) => Promise<void>;
+    updateEntrada: (id: string, item: Partial<Entrada>) => Promise<void>;
+    removeEntrada: (id: string) => Promise<void>;
 
-    // CRUD FixoMensal
-    addFixo: (item: Omit<FixoItem, 'id' | 'paid'>) => void;
-    updateFixo: (id: string, item: Partial<FixoItem>) => void;
-    removeFixo: (id: string) => void;
-    toggleFixoPaid: (id: string) => void;
+    addFixo: (item: Omit<FixoItem, 'id' | 'paid'>) => Promise<void>;
+    updateFixo: (id: string, item: Partial<FixoItem>) => Promise<void>;
+    removeFixo: (id: string) => Promise<void>;
+    toggleFixoPaid: (id: string) => Promise<void>;
 
-    // CRUD Creditos e Parcelamentos
-    addCredito: (item: Omit<ParcelamentoItem, 'id'>) => void;
-    updateCredito: (id: string, item: Partial<ParcelamentoItem>) => void;
-    removeCredito: (id: string) => void;
-    toggleCongelado: (id: string) => void;
-    toggleCreditoPaid: (id: string) => void;
+    addCredito: (item: Omit<ParcelamentoItem, 'id'>) => Promise<void>;
+    updateCredito: (id: string, item: Partial<ParcelamentoItem>) => Promise<void>;
+    removeCredito: (id: string) => Promise<void>;
+    toggleCongelado: (id: string) => Promise<void>;
+    toggleCreditoPaid: (id: string) => Promise<void>;
 
-    // CRUD Dividas
-    addDividaAngelica: (item: Omit<DividaItem, 'id'>) => void;
-    updateDividaAngelica: (id: string, item: Partial<DividaItem>) => void;
-    removeDividaAngelica: (id: string) => void;
-    toggleDividaAngelicaPaid: (id: string) => void;
+    addDividaAngelica: (item: Omit<DividaItem, 'id'>) => Promise<void>;
+    updateDividaAngelica: (id: string, item: Partial<DividaItem>) => Promise<void>;
+    removeDividaAngelica: (id: string) => Promise<void>;
+    toggleDividaAngelicaPaid: (id: string) => Promise<void>;
 
-    addDividaIsis: (item: Omit<DividaItem, 'id'>) => void;
-    updateDividaIsis: (id: string, item: Partial<DividaItem>) => void;
-    removeDividaIsis: (id: string) => void;
-    toggleDividaIsisPaid: (id: string) => void;
+    addDividaIsis: (item: Omit<DividaItem, 'id'>) => Promise<void>;
+    updateDividaIsis: (id: string, item: Partial<DividaItem>) => Promise<void>;
+    removeDividaIsis: (id: string) => Promise<void>;
+    toggleDividaIsisPaid: (id: string) => Promise<void>;
 
-    // CRUD Problemas
-    addProblema: (item: Omit<ProblemaItem, 'id'>) => void;
-    updateProblema: (id: string, item: Partial<ProblemaItem>) => void;
-    removeProblema: (id: string) => void;
-    toggleProblemaPaid: (id: string) => void;
+    addProblema: (item: Omit<ProblemaItem, 'id'>) => Promise<void>;
+    updateProblema: (id: string, item: Partial<ProblemaItem>) => Promise<void>;
+    removeProblema: (id: string) => Promise<void>;
+    toggleProblemaPaid: (id: string) => Promise<void>;
 
-    // Calcular Saldo Final anterior para passar para o próximo mês
     getSaldoFinalMes: (mesAno: string) => number;
+    subscribeRealtime: () => () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -138,173 +132,461 @@ const getCurrentMonthStr = () => {
     return `${m}-${d.getFullYear()}`;
 };
 
-export const useFamilyFinanceStore = create<FamilyFinanceState>()(
-    persist(
-        (set, get) => ({
-            currentMonth: '03-2026', // Data hardcoded default do mockup mas atualiza no bootstrap
+// Default initial data (used as seed when Supabase is empty)
+const defaultEntradas: Entrada[] = [
+    { id: 'e1', name: 'Salário Angélica', value: 2000, isFixed: true },
+    { id: 'e2', name: 'Salário Isis', value: 1750, isFixed: true },
+    { id: 'e3', name: 'Vale Alimentação Angélica', value: 390, isFixed: true },
+    { id: 'e4', name: 'Vale Alimentação Isis', value: 538, isFixed: true },
+];
 
-            entradas: [
-                { id: 'e1', name: 'Salário Angélica', value: 2000, isFixed: true },
-                { id: 'e2', name: 'Salário Isis', value: 1750, isFixed: true },
-                { id: 'e3', name: 'Vale Alimentação Angélica', value: 390, isFixed: true },
-                { id: 'e4', name: 'Vale Alimentação Isis', value: 538, isFixed: true },
-            ],
+const defaultFixos: FixoItem[] = [
+    { id: 'f1', name: 'Aluguel', value: 1183.24, paid: false, isFixed: true },
+    { id: 'f2', name: 'Alimentação / Mercado', value: 1000, paid: false, isFixed: true },
+    { id: 'f3', name: 'Eletricidade', value: 100, paid: false, isFixed: true },
+    { id: 'f4', name: 'Terapia Angélica', value: 400, paid: false, isFixed: true },
+    { id: 'f5', name: 'Faculdade Isis', value: 305.09, paid: false, isFixed: true },
+    { id: 'f6', name: 'Terapia Isis', value: 300, paid: false, isFixed: true },
+    { id: 'f7', name: 'Rações', value: 150, paid: false, isFixed: true },
+    { id: 'f8', name: 'Internet', value: 100, paid: false, isFixed: true },
+    { id: 'f9', name: 'Água', value: 100, paid: false, isFixed: true },
+    { id: 'f10', name: 'Dentista Isis', value: 90, paid: false, isFixed: true },
+];
 
-            fixoMensal: [
-                { id: 'f1', name: 'Aluguel', value: 1183.24, paid: false, isFixed: true },
-                { id: 'f2', name: 'Alimentação / Mercado', value: 1000, paid: false, isFixed: true },
-                { id: 'f3', name: 'Eletricidade', value: 100, paid: false, isFixed: true },
-                { id: 'f4', name: 'Terapia Angélica', value: 400, paid: false, isFixed: true },
-                { id: 'f5', name: 'Faculdade Isis', value: 305.09, paid: false, isFixed: true },
-                { id: 'f6', name: 'Terapia Isis', value: 300, paid: false, isFixed: true },
-                { id: 'f7', name: 'Rações', value: 150, paid: false, isFixed: true },
-                { id: 'f8', name: 'Internet', value: 100, paid: false, isFixed: true },
-                { id: 'f9', name: 'Água', value: 100, paid: false, isFixed: true },
-                { id: 'f10', name: 'Dentista Isis', value: 90, paid: false, isFixed: true },
-            ],
+const defaultCreditos: ParcelamentoItem[] = [
+    { id: 'c1', name: 'Emp. Nubank', value: 208.12, type: 'parcelamento', congelado: false, progresso: '3/7', isEvelise: false },
+    { id: 'c2', name: 'Óculos Isis', value: 160, type: 'parcelamento', congelado: true, progresso: '2/6', isEvelise: true },
+    { id: 'c3', name: 'TV', value: 150, type: 'parcelamento', congelado: true, progresso: '0/4', isEvelise: true },
+    { id: 'c4', name: 'Disney+', value: 66, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c5', name: 'Cooktop', value: 65.07, type: 'parcelamento', congelado: false, progresso: '3/6', isEvelise: true },
+    { id: 'c6', name: 'Claro Flex', value: 40, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c7', name: 'Cort. Grama', value: 38.32, type: 'parcelamento', congelado: false, progresso: '2/6', isEvelise: false },
+    { id: 'c8', name: 'Plano TIM', value: 36.99, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c9', name: 'Canva', value: 35, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c10', name: 'Max', value: 29.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c11', name: 'Spotify', value: 27.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c12', name: 'Netflix', value: 20.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
+    { id: 'c13', name: 'Escola Breno', value: 19.90, type: 'parcelamento', congelado: false, progresso: '5/12', isEvelise: false },
+];
 
-            creditos: [
-                { id: 'c1', name: 'Emp. Nubank', value: 208.12, type: 'parcelamento', congelado: false, progresso: '3/7', isEvelise: false },
-                { id: 'c2', name: 'Óculos Isis', value: 160, type: 'parcelamento', congelado: true, progresso: '2/6', isEvelise: true },
-                { id: 'c3', name: 'TV', value: 150, type: 'parcelamento', congelado: true, progresso: '0/4', isEvelise: true },
-                { id: 'c4', name: 'Disney+', value: 66, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c5', name: 'Cooktop', value: 65.07, type: 'parcelamento', congelado: false, progresso: '3/6', isEvelise: true },
-                { id: 'c6', name: 'Claro Flex', value: 40, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c7', name: 'Cort. Grama', value: 38.32, type: 'parcelamento', congelado: false, progresso: '2/6', isEvelise: false },
-                { id: 'c8', name: 'Plano TIM', value: 36.99, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c9', name: 'Canva', value: 35, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c10', name: 'Max', value: 29.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c11', name: 'Spotify', value: 27.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c12', name: 'Netflix', value: 20.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-                { id: 'c13', name: 'Escola Breno', value: 19.90, type: 'parcelamento', congelado: false, progresso: '5/12', isEvelise: false },
-            ],
+const defaultDividasAngelica: DividaItem[] = [
+    { id: 'da1', name: 'Banrisul', total: 1507, desc: '---' },
+    { id: 'da2', name: 'WillBank', total: 1410, desc: '24x R$ 58,70' },
+    { id: 'da3', name: 'Alcydes Maia', total: 1400, desc: '2x R$ 700,00' },
+    { id: 'da4', name: 'Nubank', total: 662, desc: '12x R$ 53,20' },
+    { id: 'da5', name: 'MEI', total: 600, desc: '---' },
+    { id: 'da6', name: 'Uninter', total: 350, desc: '---' },
+];
 
-            dividasAngelica: [
-                { id: 'da1', name: 'Banrisul', total: 1507, desc: '---' },
-                { id: 'da2', name: 'WillBank', total: 1410, desc: '24x R$ 58,70' },
-                { id: 'da3', name: 'Alcydes Maia', total: 1400, desc: '2x R$ 700,00' },
-                { id: 'da4', name: 'Nubank', total: 662, desc: '12x R$ 53,20' },
-                { id: 'da5', name: 'MEI', total: 600, desc: '---' },
-                { id: 'da6', name: 'Uninter', total: 350, desc: '---' },
-            ],
+const defaultDividasIsis: DividaItem[] = [
+    { id: 'di1', name: 'Emp. BB', total: 3817.47, desc: '' },
+    { id: 'di2', name: 'Crédito BB', total: 5045.61, desc: '' },
+    { id: 'di3', name: 'Emp. BB (2)', total: 296.54, desc: '' },
+];
 
-            dividasIsis: [
-                { id: 'di1', name: 'Emp. BB', total: 3817.47, desc: '' },
-                { id: 'di2', name: 'Crédito BB', total: 5045.61, desc: '' },
-                { id: 'di3', name: 'Emp. BB (2)', total: 296.54, desc: '' },
-            ],
+const defaultProblemas: ProblemaItem[] = [
+    { id: 'prob1', name: 'Bulla Isis', total: 600, desc: 'R$140 descontado da folha', encerraEm: 'Agosto/2026', status: '1/6' },
+    { id: 'prob2', name: 'Crédito Nubank', total: 401, desc: 'Fatura mês', encerraEm: 'Março/2026', status: '' },
+    { id: 'prob3', name: 'Crédito Inter', total: 858.83, desc: 'Fatura mês', encerraEm: 'Março/2026', status: '' },
+];
 
-            problemas: [
-                { id: 'prob1', name: 'Bulla Isis', total: 600, desc: 'R$140 descontado da folha', encerraEm: 'Agosto/2026', status: '1/6' },
-                { id: 'prob2', name: 'Crédito Nubank', total: 401, desc: 'Fatura mês', encerraEm: 'Março/2026', status: '' },
-                { id: 'prob3', name: 'Crédito Inter', total: 858.83, desc: 'Fatura mês', encerraEm: 'Março/2026', status: '' },
-            ],
+// ───────────────────────────────────────────
+// Helper: Supabase CRUD wrappers for dividas (shared between angelica/isis)
+// ───────────────────────────────────────────
+const upsertDivida = async (id: string, data: Omit<DividaItem, 'id'>, owner: string) => {
+    await supabase.from('family_finance_dividas').upsert({
+        id,
+        name: data.name,
+        total: data.total,
+        descricao: data.desc,
+        owner,
+        paid: data.paid || false,
+    });
+};
 
-            termometroFiles: {},
+export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
+    currentMonth: getCurrentMonthStr(),
+    entradas: defaultEntradas,
+    fixoMensal: defaultFixos,
+    creditos: defaultCreditos,
+    dividasAngelica: defaultDividasAngelica,
+    dividasIsis: defaultDividasIsis,
+    problemas: defaultProblemas,
+    termometroFiles: {},
+    isLoading: false,
 
-            getSaldoFinalMes: (mesAno: string) => {
-                const term = get().termometroFiles[mesAno];
-                if (!term) return 0;
+    fetchAll: async () => {
+        if (!isSupabaseConfigured()) return;
+        set({ isLoading: true });
 
-                // Calculates the balance progressively
-                let saldoAtual = term.saldoInicial;
-                for (let i = 0; i < term.dias.length; i++) {
-                    const dia = term.dias[i];
-                    saldoAtual = saldoAtual + (dia.entrada || 0) - ((dia.saida || 0) + (dia.diario || 0));
-                }
-                return saldoAtual;
-            },
+        const [stateRes, entRes, fixRes, credRes, divRes, probRes, termRes] = await Promise.all([
+            supabase.from('family_finance_state').select('*').eq('id', 'singleton').maybeSingle(),
+            supabase.from('family_finance_entradas').select('*'),
+            supabase.from('family_finance_fixos').select('*'),
+            supabase.from('family_finance_creditos').select('*'),
+            supabase.from('family_finance_dividas').select('*'),
+            supabase.from('family_finance_problemas').select('*'),
+            supabase.from('family_finance_termometro').select('*'),
+        ]);
 
-            checkMonthTurnover: () => {
-                const currentStr = getCurrentMonthStr();
-                const state = get();
+        const updates: Partial<FamilyFinanceState> = {};
 
-                if (state.currentMonth !== currentStr) {
-                    // Turn over to new month!
-                    const lastMonthStr = state.currentMonth;
-                    const saldoHerança = get().getSaldoFinalMes(lastMonthStr);
-
-                    set((s) => ({
-                        currentMonth: currentStr,
-                        // Clean arrays keeping only fixed
-                        entradas: s.entradas.filter(e => e.isFixed),
-                        // Keep fixed, and reset paid to false
-                        fixoMensal: s.fixoMensal.filter(f => f.isFixed).map(f => ({ ...f, paid: false })),
-                        creditos: s.creditos.map(c => ({ ...c, paid: false })),
-                        problemas: s.problemas.map(p => ({ ...p, paid: false })),
-                        dividasAngelica: s.dividasAngelica.map(d => ({ ...d, paid: false })),
-                        dividasIsis: s.dividasIsis.map(d => ({ ...d, paid: false })),
-
-                        // Initialize new thermometro month
-                        termometroFiles: {
-                            ...s.termometroFiles,
-                            [currentStr]: createEmptyMonth(currentStr, saldoHerança, getMonthName(parseInt(currentStr.split('-')[0])))
-                        }
-                    }));
-                } else if (!state.termometroFiles[currentStr]) {
-                    // Just bootstrap the current month if missing
-                    set((s) => ({
-                        termometroFiles: {
-                            ...s.termometroFiles,
-                            [currentStr]: createEmptyMonth(currentStr, 0, getMonthName(parseInt(currentStr.split('-')[0])))
-                        }
-                    }));
-                }
-            },
-
-            updateTermometroDay: (mesAno, dia, field, value) => {
-                set((s) => {
-                    const monthFile = s.termometroFiles[mesAno];
-                    if (!monthFile) return s;
-
-                    const newDias = [...monthFile.dias];
-                    const dayObj = { ...newDias[dia - 1] };
-
-                    // @ts-ignore
-                    dayObj[field] = value;
-                    newDias[dia - 1] = dayObj;
-
-                    return {
-                        termometroFiles: {
-                            ...s.termometroFiles,
-                            [mesAno]: { ...monthFile, dias: newDias }
-                        }
-                    };
-                });
-            },
-
-            addEntrada: (item) => set((s) => ({ entradas: [...s.entradas, { ...item, id: generateId() }] })),
-            updateEntrada: (id, item) => set((s) => ({ entradas: s.entradas.map(e => e.id === id ? { ...e, ...item } : e) })),
-            removeEntrada: (id) => set((s) => ({ entradas: s.entradas.filter(e => e.id !== id) })),
-
-            addFixo: (item) => set((s) => ({ fixoMensal: [...s.fixoMensal, { ...item, paid: false, id: generateId() }] })),
-            updateFixo: (id, item) => set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, ...item } : f) })),
-            removeFixo: (id) => set((s) => ({ fixoMensal: s.fixoMensal.filter(f => f.id !== id) })),
-            toggleFixoPaid: (id) => set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, paid: !f.paid } : f) })),
-
-            addCredito: (item) => set((s) => ({ creditos: [...s.creditos, { ...item, paid: false, id: generateId() }] })),
-            updateCredito: (id, item) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, ...item } : c) })),
-            removeCredito: (id) => set((s) => ({ creditos: s.creditos.filter(c => c.id !== id) })),
-            toggleCongelado: (id) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, congelado: !c.congelado } : c) })),
-            toggleCreditoPaid: (id) => set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, paid: !c.paid } : c) })),
-
-            addDividaAngelica: (item) => set((s) => ({ dividasAngelica: [...s.dividasAngelica, { ...item, paid: false, id: generateId() }] })),
-            updateDividaAngelica: (id, item) => set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, ...item } : d) })),
-            removeDividaAngelica: (id) => set((s) => ({ dividasAngelica: s.dividasAngelica.filter(d => d.id !== id) })),
-            toggleDividaAngelicaPaid: (id) => set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, paid: !d.paid } : d) })),
-
-            addDividaIsis: (item) => set((s) => ({ dividasIsis: [...s.dividasIsis, { ...item, paid: false, id: generateId() }] })),
-            updateDividaIsis: (id, item) => set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, ...item } : d) })),
-            removeDividaIsis: (id) => set((s) => ({ dividasIsis: s.dividasIsis.filter(d => d.id !== id) })),
-            toggleDividaIsisPaid: (id) => set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, paid: !d.paid } : d) })),
-
-            addProblema: (item) => set((s) => ({ problemas: [...s.problemas, { ...item, paid: false, id: generateId() }] })),
-            updateProblema: (id, item) => set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, ...item } : p) })),
-            removeProblema: (id) => set((s) => ({ problemas: s.problemas.filter(p => p.id !== id) })),
-            toggleProblemaPaid: (id) => set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, paid: !p.paid } : p) })),
-        }),
-        {
-            name: 'family-finance-v2', // Change name to abandon old cache state and use the new initial seed
+        if (stateRes.data) {
+            updates.currentMonth = stateRes.data.current_month;
         }
-    )
-);
+
+        if (!entRes.error && entRes.data && entRes.data.length > 0) {
+            updates.entradas = entRes.data.map((e: any) => ({
+                id: e.id, name: e.name, value: parseFloat(e.value), isFixed: e.is_fixed,
+            }));
+        }
+
+        if (!fixRes.error && fixRes.data && fixRes.data.length > 0) {
+            updates.fixoMensal = fixRes.data.map((f: any) => ({
+                id: f.id, name: f.name, value: parseFloat(f.value), isFixed: f.is_fixed, paid: f.paid,
+            }));
+        }
+
+        if (!credRes.error && credRes.data && credRes.data.length > 0) {
+            updates.creditos = credRes.data.map((c: any) => ({
+                id: c.id, name: c.name, value: parseFloat(c.value), type: c.type,
+                congelado: c.congelado, progresso: c.progresso || '', isEvelise: c.is_evelise,
+                paid: c.paid, startMonth: c.start_month,
+            }));
+        }
+
+        if (!divRes.error && divRes.data && divRes.data.length > 0) {
+            updates.dividasAngelica = divRes.data
+                .filter((d: any) => d.owner === 'angelica')
+                .map((d: any) => ({ id: d.id, name: d.name, total: parseFloat(d.total), desc: d.descricao || '', paid: d.paid }));
+            updates.dividasIsis = divRes.data
+                .filter((d: any) => d.owner === 'isis')
+                .map((d: any) => ({ id: d.id, name: d.name, total: parseFloat(d.total), desc: d.descricao || '', paid: d.paid }));
+        }
+
+        if (!probRes.error && probRes.data && probRes.data.length > 0) {
+            updates.problemas = probRes.data.map((p: any) => ({
+                id: p.id, name: p.name, total: parseFloat(p.total), desc: p.descricao || '',
+                encerraEm: p.encerra_em || '', status: p.status || '', paid: p.paid,
+            }));
+        }
+
+        if (!termRes.error && termRes.data && termRes.data.length > 0) {
+            const termometroFiles: Record<string, MesTermometro> = {};
+            termRes.data.forEach((t: any) => {
+                termometroFiles[t.mes_ano] = {
+                    mesAno: t.mes_ano,
+                    nome: t.nome,
+                    dias: t.dias || [],
+                    saldoInicial: parseFloat(t.saldo_inicial),
+                };
+            });
+            updates.termometroFiles = termometroFiles;
+        }
+
+        set({ ...updates, isLoading: false });
+    },
+
+    getSaldoFinalMes: (mesAno: string) => {
+        const term = get().termometroFiles[mesAno];
+        if (!term) return 0;
+        let saldoAtual = term.saldoInicial;
+        for (let i = 0; i < term.dias.length; i++) {
+            const dia = term.dias[i];
+            saldoAtual = saldoAtual + (dia.entrada || 0) - ((dia.saida || 0) + (dia.diario || 0));
+        }
+        return saldoAtual;
+    },
+
+    checkMonthTurnover: () => {
+        const currentStr = getCurrentMonthStr();
+        const state = get();
+
+        if (state.currentMonth !== currentStr) {
+            const lastMonthStr = state.currentMonth;
+            const saldoHeranca = get().getSaldoFinalMes(lastMonthStr);
+
+            set((s) => ({
+                currentMonth: currentStr,
+                entradas: s.entradas.filter(e => e.isFixed),
+                fixoMensal: s.fixoMensal.filter(f => f.isFixed).map(f => ({ ...f, paid: false })),
+                creditos: s.creditos.map(c => ({ ...c, paid: false })),
+                problemas: s.problemas.map(p => ({ ...p, paid: false })),
+                dividasAngelica: s.dividasAngelica.map(d => ({ ...d, paid: false })),
+                dividasIsis: s.dividasIsis.map(d => ({ ...d, paid: false })),
+                termometroFiles: {
+                    ...s.termometroFiles,
+                    [currentStr]: createEmptyMonth(currentStr, saldoHeranca, getMonthName(parseInt(currentStr.split('-')[0])))
+                }
+            }));
+
+            if (isSupabaseConfigured()) {
+                supabase.from('family_finance_state').upsert({ id: 'singleton', current_month: currentStr });
+            }
+        } else if (!state.termometroFiles[currentStr]) {
+            const newMonth = createEmptyMonth(currentStr, 0, getMonthName(parseInt(currentStr.split('-')[0])));
+            set((s) => ({
+                termometroFiles: {
+                    ...s.termometroFiles,
+                    [currentStr]: newMonth,
+                }
+            }));
+
+            if (isSupabaseConfigured()) {
+                supabase.from('family_finance_termometro').upsert({
+                    id: `term-${currentStr}`,
+                    mes_ano: currentStr,
+                    nome: newMonth.nome,
+                    saldo_inicial: 0,
+                    dias: newMonth.dias,
+                });
+            }
+        }
+    },
+
+    updateTermometroDay: async (mesAno, dia, field, value) => {
+        set((s) => {
+            const monthFile = s.termometroFiles[mesAno];
+            if (!monthFile) return s;
+            const newDias = [...monthFile.dias];
+            const dayObj = { ...newDias[dia - 1] };
+            // @ts-ignore
+            dayObj[field] = value;
+            newDias[dia - 1] = dayObj;
+            return {
+                termometroFiles: { ...s.termometroFiles, [mesAno]: { ...monthFile, dias: newDias } }
+            };
+        });
+
+        if (isSupabaseConfigured()) {
+            const month = get().termometroFiles[mesAno];
+            if (month) {
+                await supabase.from('family_finance_termometro').upsert({
+                    id: `term-${mesAno}`,
+                    mes_ano: mesAno,
+                    nome: month.nome,
+                    saldo_inicial: month.saldoInicial,
+                    dias: month.dias,
+                });
+            }
+        }
+    },
+
+    // ── ENTRADAS ──
+    addEntrada: async (item) => {
+        const id = generateId();
+        set((s) => ({ entradas: [...s.entradas, { ...item, id }] }));
+        if (isSupabaseConfigured()) {
+            await supabase.from('family_finance_entradas').insert({ id, name: item.name, value: item.value, is_fixed: item.isFixed });
+        }
+    },
+    updateEntrada: async (id, item) => {
+        set((s) => ({ entradas: s.entradas.map(e => e.id === id ? { ...e, ...item } : e) }));
+        if (isSupabaseConfigured()) {
+            const db: any = {};
+            if (item.name !== undefined) db.name = item.name;
+            if (item.value !== undefined) db.value = item.value;
+            if (item.isFixed !== undefined) db.is_fixed = item.isFixed;
+            if (Object.keys(db).length > 0) await supabase.from('family_finance_entradas').update(db).eq('id', id);
+        }
+    },
+    removeEntrada: async (id) => {
+        set((s) => ({ entradas: s.entradas.filter(e => e.id !== id) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_entradas').delete().eq('id', id);
+    },
+
+    // ── FIXO MENSAL ──
+    addFixo: async (item) => {
+        const id = generateId();
+        set((s) => ({ fixoMensal: [...s.fixoMensal, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) {
+            await supabase.from('family_finance_fixos').insert({ id, name: item.name, value: item.value, is_fixed: item.isFixed, paid: false });
+        }
+    },
+    updateFixo: async (id, item) => {
+        set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, ...item } : f) }));
+        if (isSupabaseConfigured()) {
+            const db: any = {};
+            if (item.name !== undefined) db.name = item.name;
+            if (item.value !== undefined) db.value = item.value;
+            if (item.isFixed !== undefined) db.is_fixed = item.isFixed;
+            if (item.paid !== undefined) db.paid = item.paid;
+            if (Object.keys(db).length > 0) await supabase.from('family_finance_fixos').update(db).eq('id', id);
+        }
+    },
+    removeFixo: async (id) => {
+        set((s) => ({ fixoMensal: s.fixoMensal.filter(f => f.id !== id) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_fixos').delete().eq('id', id);
+    },
+    toggleFixoPaid: async (id) => {
+        const item = get().fixoMensal.find(f => f.id === id);
+        if (!item) return;
+        const newPaid = !item.paid;
+        set((s) => ({ fixoMensal: s.fixoMensal.map(f => f.id === id ? { ...f, paid: newPaid } : f) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_fixos').update({ paid: newPaid }).eq('id', id);
+    },
+
+    // ── CRÉDITOS / PARCELAMENTOS ──
+    addCredito: async (item) => {
+        const id = generateId();
+        set((s) => ({ creditos: [...s.creditos, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) {
+            await supabase.from('family_finance_creditos').insert({
+                id, name: item.name, value: item.value, type: item.type,
+                congelado: item.congelado, progresso: item.progresso, is_evelise: item.isEvelise,
+                paid: false, start_month: item.startMonth || null,
+            });
+        }
+    },
+    updateCredito: async (id, item) => {
+        set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, ...item } : c) }));
+        if (isSupabaseConfigured()) {
+            const db: any = {};
+            if (item.name !== undefined) db.name = item.name;
+            if (item.value !== undefined) db.value = item.value;
+            if (item.type !== undefined) db.type = item.type;
+            if (item.congelado !== undefined) db.congelado = item.congelado;
+            if (item.progresso !== undefined) db.progresso = item.progresso;
+            if (item.isEvelise !== undefined) db.is_evelise = item.isEvelise;
+            if (item.paid !== undefined) db.paid = item.paid;
+            if (item.startMonth !== undefined) db.start_month = item.startMonth;
+            if (Object.keys(db).length > 0) await supabase.from('family_finance_creditos').update(db).eq('id', id);
+        }
+    },
+    removeCredito: async (id) => {
+        set((s) => ({ creditos: s.creditos.filter(c => c.id !== id) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_creditos').delete().eq('id', id);
+    },
+    toggleCongelado: async (id) => {
+        const item = get().creditos.find(c => c.id === id);
+        if (!item) return;
+        const newVal = !item.congelado;
+        set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, congelado: newVal } : c) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_creditos').update({ congelado: newVal }).eq('id', id);
+    },
+    toggleCreditoPaid: async (id) => {
+        const item = get().creditos.find(c => c.id === id);
+        if (!item) return;
+        const newPaid = !item.paid;
+        set((s) => ({ creditos: s.creditos.map(c => c.id === id ? { ...c, paid: newPaid } : c) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_creditos').update({ paid: newPaid }).eq('id', id);
+    },
+
+    // ── DIVIDAS ANGELICA ──
+    addDividaAngelica: async (item) => {
+        const id = generateId();
+        set((s) => ({ dividasAngelica: [...s.dividasAngelica, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'angelica');
+    },
+    updateDividaAngelica: async (id, item) => {
+        set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, ...item } : d) }));
+        if (isSupabaseConfigured()) {
+            const db: any = {};
+            if (item.name !== undefined) db.name = item.name;
+            if (item.total !== undefined) db.total = item.total;
+            if (item.desc !== undefined) db.descricao = item.desc;
+            if (item.paid !== undefined) db.paid = item.paid;
+            if (Object.keys(db).length > 0) await supabase.from('family_finance_dividas').update(db).eq('id', id);
+        }
+    },
+    removeDividaAngelica: async (id) => {
+        set((s) => ({ dividasAngelica: s.dividasAngelica.filter(d => d.id !== id) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').delete().eq('id', id);
+    },
+    toggleDividaAngelicaPaid: async (id) => {
+        const item = get().dividasAngelica.find(d => d.id === id);
+        if (!item) return;
+        const newPaid = !item.paid;
+        set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').update({ paid: newPaid }).eq('id', id);
+    },
+
+    // ── DIVIDAS ISIS ──
+    addDividaIsis: async (item) => {
+        const id = generateId();
+        set((s) => ({ dividasIsis: [...s.dividasIsis, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'isis');
+    },
+    updateDividaIsis: async (id, item) => {
+        set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, ...item } : d) }));
+        if (isSupabaseConfigured()) {
+            const db: any = {};
+            if (item.name !== undefined) db.name = item.name;
+            if (item.total !== undefined) db.total = item.total;
+            if (item.desc !== undefined) db.descricao = item.desc;
+            if (item.paid !== undefined) db.paid = item.paid;
+            if (Object.keys(db).length > 0) await supabase.from('family_finance_dividas').update(db).eq('id', id);
+        }
+    },
+    removeDividaIsis: async (id) => {
+        set((s) => ({ dividasIsis: s.dividasIsis.filter(d => d.id !== id) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').delete().eq('id', id);
+    },
+    toggleDividaIsisPaid: async (id) => {
+        const item = get().dividasIsis.find(d => d.id === id);
+        if (!item) return;
+        const newPaid = !item.paid;
+        set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').update({ paid: newPaid }).eq('id', id);
+    },
+
+    // ── PROBLEMAS ──
+    addProblema: async (item) => {
+        const id = generateId();
+        set((s) => ({ problemas: [...s.problemas, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) {
+            await supabase.from('family_finance_problemas').insert({
+                id, name: item.name, total: item.total, descricao: item.desc,
+                encerra_em: item.encerraEm, status: item.status, paid: false,
+            });
+        }
+    },
+    updateProblema: async (id, item) => {
+        set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, ...item } : p) }));
+        if (isSupabaseConfigured()) {
+            const db: any = {};
+            if (item.name !== undefined) db.name = item.name;
+            if (item.total !== undefined) db.total = item.total;
+            if (item.desc !== undefined) db.descricao = item.desc;
+            if (item.encerraEm !== undefined) db.encerra_em = item.encerraEm;
+            if (item.status !== undefined) db.status = item.status;
+            if (item.paid !== undefined) db.paid = item.paid;
+            if (Object.keys(db).length > 0) await supabase.from('family_finance_problemas').update(db).eq('id', id);
+        }
+    },
+    removeProblema: async (id) => {
+        set((s) => ({ problemas: s.problemas.filter(p => p.id !== id) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_problemas').delete().eq('id', id);
+    },
+    toggleProblemaPaid: async (id) => {
+        const item = get().problemas.find(p => p.id === id);
+        if (!item) return;
+        const newPaid = !item.paid;
+        set((s) => ({ problemas: s.problemas.map(p => p.id === id ? { ...p, paid: newPaid } : p) }));
+        if (isSupabaseConfigured()) await supabase.from('family_finance_problemas').update({ paid: newPaid }).eq('id', id);
+    },
+
+    // ── REALTIME ──
+    subscribeRealtime: () => {
+        if (!isSupabaseConfigured()) return () => {};
+
+        const tables = [
+            'family_finance_state', 'family_finance_entradas', 'family_finance_fixos',
+            'family_finance_creditos', 'family_finance_dividas', 'family_finance_problemas',
+            'family_finance_termometro',
+        ];
+
+        const channels = tables.map((table) =>
+            supabase
+                .channel(`ff-${table}-changes`)
+                .on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+                    get().fetchAll();
+                })
+                .subscribe()
+        );
+
+        return () => {
+            channels.forEach((ch) => supabase.removeChannel(ch));
+        };
+    },
+}));

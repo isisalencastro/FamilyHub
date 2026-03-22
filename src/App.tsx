@@ -12,16 +12,46 @@ import { Pets } from '@/pages/Pets';
 
 import { useTaskStore } from '@/stores/taskStore';
 import { useFinanceStore } from '@/stores/financeStore';
+import { useShoppingStore } from '@/stores/shoppingStore';
+import { useCalendarStore } from '@/stores/calendarStore';
+import { useCalendarCommentsStore } from '@/stores/calendarCommentsStore';
+import { useGoalStore } from '@/stores/goalStore';
+import { usePetStore } from '@/stores/petStore';
+import { useMenuStore } from '@/stores/menuStore';
+import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
 
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
 
 function App() {
+  // ── Existing stores ──
   const fetchTasks = useTaskStore((s: any) => s.fetchTasks);
   const subscribeTasksRealtime = useTaskStore((s: any) => s.subscribeRealtime);
 
   const fetchTransactions = useFinanceStore((s: any) => s.fetchTransactions);
   const subscribeFinanceRealtime = useFinanceStore((s: any) => s.subscribeRealtime);
+
+  // ── New stores ──
+  const fetchShoppingData = useShoppingStore((s) => s.fetchData);
+  const subscribeShoppingRealtime = useShoppingStore((s) => s.subscribeRealtime);
+
+  const fetchCalendarEvents = useCalendarStore((s) => s.fetchEvents);
+  const subscribeCalendarRealtime = useCalendarStore((s) => s.subscribeRealtime);
+
+  const fetchCalendarComments = useCalendarCommentsStore((s) => s.fetchComments);
+  const subscribeCalendarCommentsRealtime = useCalendarCommentsStore((s) => s.subscribeRealtime);
+
+  const fetchGoals = useGoalStore((s) => s.fetchGoals);
+  const subscribeGoalsRealtime = useGoalStore((s) => s.subscribeRealtime);
+
+  const fetchPets = usePetStore((s) => s.fetchPets);
+  const subscribePetsRealtime = usePetStore((s) => s.subscribeRealtime);
+
+  const fetchMeals = useMenuStore((s) => s.fetchMeals);
+  const subscribeMealsRealtime = useMenuStore((s) => s.subscribeRealtime);
+
+  const fetchFamilyFinance = useFamilyFinanceStore((s) => s.fetchAll);
+  const subscribeFamilyFinanceRealtime = useFamilyFinanceStore((s) => s.subscribeRealtime);
 
   const allTasks = useTaskStore((s: any) => s.tasks);
 
@@ -34,14 +64,35 @@ function App() {
     // Fetch all data on startup
     fetchTasks();
     fetchTransactions();
+    fetchShoppingData();
+    fetchCalendarEvents();
+    fetchCalendarComments();
+    fetchGoals();
+    fetchPets();
+    fetchMeals();
+    fetchFamilyFinance();
 
     // Subscribe to realtime changes
     const unsubTasks = subscribeTasksRealtime();
     const unsubFinance = subscribeFinanceRealtime();
+    const unsubShopping = subscribeShoppingRealtime();
+    const unsubCalendar = subscribeCalendarRealtime();
+    const unsubCalendarComments = subscribeCalendarCommentsRealtime();
+    const unsubGoals = subscribeGoalsRealtime();
+    const unsubPets = subscribePetsRealtime();
+    const unsubMeals = subscribeMealsRealtime();
+    const unsubFamilyFinance = subscribeFamilyFinanceRealtime();
 
     return () => {
       unsubTasks();
       unsubFinance();
+      unsubShopping();
+      unsubCalendar();
+      unsubCalendarComments();
+      unsubGoals();
+      unsubPets();
+      unsubMeals();
+      unsubFamilyFinance();
     };
   }, []);
 

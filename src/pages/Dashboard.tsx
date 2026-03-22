@@ -66,7 +66,6 @@ export function Dashboard() {
     const saldoFixo = famFinance.entradas.filter(e => e.isFixed).reduce((acc, c) => acc + c.value, 0);
     const despFixaMs = famFinance.fixoMensal.reduce((acc, c) => acc + c.value, 0);
 
-    const creditosAtivos = famFinance.creditos.filter(c => c.type !== 'assinatura' && !c.congelado);
     const currentMonthStr = `${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getFullYear()}`;
 
     const isActiveThisMonth = (startMonth: string, currentMonth: string) => {
@@ -78,11 +77,16 @@ export function Dashboard() {
         return false;
     };
 
+    const creditosAtivos = famFinance.creditos.filter(c => c.type !== 'assinatura' && !c.congelado);
     const dispCreditosMs = creditosAtivos.filter(c => isActiveThisMonth(c.startMonth || '', currentMonthStr)).reduce((acc, c) => acc + c.value, 0);
+
+    const assinaturasAtivas = famFinance.creditos.filter(c => c.type === 'assinatura' && !c.congelado);
+    const dispAssinaturasMs = assinaturasAtivas.filter(c => isActiveThisMonth(c.startMonth || '', currentMonthStr)).reduce((acc, c) => acc + c.value, 0);
+
     const probsTotalMs = famFinance.problemas.reduce((acc, c) => acc + c.total, 0) || 0;
 
     const totalEntradasNoMes = saldoCorrente + saldoFixo;
-    const totalDespesasNoMes = despFixaMs + dispCreditosMs + probsTotalMs;
+    const totalDespesasNoMes = despFixaMs + dispCreditosMs + dispAssinaturasMs + probsTotalMs;
     const saldoProjetadoLivre = totalEntradasNoMes - totalDespesasNoMes;
 
     const displayIncome = totalEntradasNoMes;
