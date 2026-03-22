@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCalendarStore } from '@/stores/calendarStore';
 import { useCalendarCommentsStore } from '@/stores/calendarCommentsStore';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, MessageCircle, Send, Trash2, User } from 'lucide-react';
@@ -23,6 +23,13 @@ export function CalendarView() {
 
     // Comment form state
     const [commentText, setCommentText] = useState('');
+    const [selectedAuthor, setSelectedAuthor] = useState(activeWorkspace.id || 'familia');
+
+    useEffect(() => {
+        if (activeWorkspace.id && AUTHOR_CONFIG[activeWorkspace.id]) {
+            setSelectedAuthor(activeWorkspace.id);
+        }
+    }, [activeWorkspace.id]);
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +47,7 @@ export function CalendarView() {
 
     const handleAddComment = () => {
         if (!commentText.trim()) return;
-        const authorKey = activeWorkspace.id;
+        const authorKey = selectedAuthor;
         const authorCfg = AUTHOR_CONFIG[authorKey] || AUTHOR_CONFIG.familia;
         addComment({
             author: authorKey,
@@ -305,7 +312,7 @@ export function CalendarView() {
                             width: '36px',
                             height: '36px',
                             borderRadius: '50%',
-                            background: `linear-gradient(135deg, ${AUTHOR_CONFIG[activeWorkspace.id]?.color || '#8b5cf6'}, ${AUTHOR_CONFIG[activeWorkspace.id]?.color || '#8b5cf6'}cc)`,
+                            background: `linear-gradient(135deg, ${AUTHOR_CONFIG[selectedAuthor]?.color || '#8b5cf6'}, ${AUTHOR_CONFIG[selectedAuthor]?.color || '#8b5cf6'}cc)`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -314,12 +321,34 @@ export function CalendarView() {
                             fontSize: '14px',
                             flexShrink: 0,
                         }}>
-                            {AUTHOR_CONFIG[activeWorkspace.id]?.avatar || 'F'}
+                            {AUTHOR_CONFIG[selectedAuthor]?.avatar || 'F'}
                         </div>
 
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Comentar como:</span>
+                                <select 
+                                    value={selectedAuthor}
+                                    onChange={e => setSelectedAuthor(e.target.value)}
+                                    style={{
+                                        border: '1px solid var(--color-border-subtle)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        background: 'transparent',
+                                        color: 'var(--color-text-primary)',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        padding: '2px 4px',
+                                        outline: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {Object.entries(AUTHOR_CONFIG).map(([key, cfg]) => (
+                                        <option key={key} value={key}>{cfg.displayName}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <textarea
-                                placeholder={`Escreva um comentário como ${AUTHOR_CONFIG[activeWorkspace.id]?.displayName || 'Família'}...`}
+                                placeholder={`Escreva um comentário como ${AUTHOR_CONFIG[selectedAuthor]?.displayName || 'Família'}...`}
                                 value={commentText}
                                 onChange={(e) => setCommentText(e.target.value)}
                                 onKeyDown={(e) => {
