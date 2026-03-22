@@ -24,21 +24,7 @@ const RSS_FEEDS: Record<NewsCategory, { url: string; source: string }> = {
     },
 };
 
-const RSS2JSON_API = 'https://api.rss2json.com/v1/api.json';
-
-interface Rss2JsonItem {
-    title: string;
-    pubDate: string;
-    link: string;
-    description: string;
-    thumbnail: string;
-    enclosure?: { link?: string };
-}
-
-interface Rss2JsonResponse {
-    status: string;
-    items: Rss2JsonItem[];
-}
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 function stripHtml(html: string): string {
     const tmp = document.createElement('div');
@@ -48,24 +34,45 @@ function stripHtml(html: string): string {
 
 export async function fetchNews(category: NewsCategory, count = 8): Promise<NewsItem[]> {
     const feed = RSS_FEEDS[category];
-    const apiUrl = `${RSS2JSON_API}?rss_url=${encodeURIComponent(feed.url)}&count=${count}`;
+    const apiUrl = `${CORS_PROXY}${encodeURIComponent(feed.url)}`;
 
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('RSS fetch failed');
 
-        const data: Rss2JsonResponse = await response.json();
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
 
-        if (data.status !== 'ok') throw new Error('RSS status not ok');
+        const items = Array.from(xmlDoc.querySelectorAll('item')).slice(0, count);
 
-        return data.items.map((item) => ({
-            title: item.title,
-            link: item.link,
-            description: stripHtml(item.description).slice(0, 160),
-            thumbnail: item.thumbnail || item.enclosure?.link || '',
-            pubDate: item.pubDate,
-            source: feed.source,
-        }));
+        return items.map((item) => {
+            const title = item.querySelector('title')?.textContent || '';
+            const link = item.querySelector('link')?.textContent || '';
+            const descriptionHtml = item.querySelector('description')?.textContent || '';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+
+            let thumbnail = '';
+            const mediaContent = item.getElementsByTagName('media:content');
+            if (mediaContent.length > 0) {
+                thumbnail = mediaContent[0].getAttribute('url') || '';
+            }
+            if (!thumbnail) {
+                const enclosure = item.querySelector('enclosure');
+                if (enclosure) {
+                    thumbnail = enclosure.getAttribute('url') || '';
+                }
+            }
+
+            return {
+                title,
+                link,
+                description: stripHtml(descriptionHtml).slice(0, 160),
+                thumbnail,
+                pubDate,
+                source: feed.source,
+            };
+        });
     } catch (error) {
         console.error(`Failed to fetch ${category} news:`, error);
         return [];
