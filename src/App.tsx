@@ -19,8 +19,11 @@ import { useGoalStore } from '@/stores/goalStore';
 import { usePetStore } from '@/stores/petStore';
 import { useMenuStore } from '@/stores/menuStore';
 import { useFamilyFinanceStore } from '@/stores/familyFinanceStore';
+import { useDocStore } from '@/stores/docStore';
+import { useUpdateStore } from '@/stores/updateStore';
 
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { UpdateToast } from '@/components/UpdateToast';
 import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
 
 function App() {
@@ -53,6 +56,12 @@ function App() {
   const fetchFamilyFinance = useFamilyFinanceStore((s) => s.fetchAll);
   const subscribeFamilyFinanceRealtime = useFamilyFinanceStore((s) => s.subscribeRealtime);
 
+  const fetchDocs = useDocStore((s) => s.loadDocuments);
+  const subscribeDocsRealtime = useDocStore((s) => s.subscribeRealtime);
+
+  const checkForUpdate = useUpdateStore((s) => s.checkForUpdate);
+  const subscribeUpdateRealtime = useUpdateStore((s) => s.subscribeRealtime);
+
   const allTasks = useTaskStore((s: any) => s.tasks);
 
   useEffect(() => {
@@ -71,6 +80,8 @@ function App() {
     fetchPets();
     fetchMeals();
     fetchFamilyFinance();
+    fetchDocs();
+    checkForUpdate();
 
     // Subscribe to realtime changes
     const unsubTasks = subscribeTasksRealtime();
@@ -82,6 +93,8 @@ function App() {
     const unsubPets = subscribePetsRealtime();
     const unsubMeals = subscribeMealsRealtime();
     const unsubFamilyFinance = subscribeFamilyFinanceRealtime();
+    const unsubDocs = subscribeDocsRealtime();
+    const unsubUpdate = subscribeUpdateRealtime();
 
     return () => {
       unsubTasks();
@@ -93,6 +106,8 @@ function App() {
       unsubPets();
       unsubMeals();
       unsubFamilyFinance();
+      unsubDocs();
+      unsubUpdate();
     };
   }, []);
 
@@ -127,6 +142,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>
+      <UpdateToast />
     </BrowserRouter>
   );
 }

@@ -200,7 +200,7 @@ export function Finance() {
 
                                 {/* Creditos / Parcelamentos Embeded */}
                                 <div style={{ padding: '8px 14px', fontSize: 12, fontWeight: 600, color: 'var(--color-text-tertiary)', background: 'var(--color-bg-secondary)', borderTop: '1px solid var(--color-border-default)', borderBottom: '1px solid var(--color-border-default)', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>PARCELAMENTOS</span>
+                                    <span>PARCELAMENTOS (CRÉDITO)</span>
                                     <button className="btn btn-ghost btn-sm" style={{ padding: '0px 4px', height: 'auto', color: 'var(--color-accent-primary)' }} onClick={() => { setEditingItem(null); setDefaultCreditoType('parcelamento'); setModalType('credito'); }}><Plus size={12} /></button>
                                 </div>
 
@@ -235,6 +235,18 @@ export function Finance() {
                                     )
                                 })}
 
+                                {/* Subtotais detalhados */}
+                                <div style={{ padding: '10px 14px', borderTop: '1px solid var(--color-border-default)', background: 'var(--color-bg-secondary)', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Saídas Fixas (Débito)</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixoMensal)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Parcelamentos (Crédito)</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalCreditosMensal)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Assinaturas (Crédito)</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalAssinaturasMensal)}</span>
+                                    </div>
+                                </div>
                                 <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
                                     <span>TOTAL DE GASTOS DO MÊS</span><span style={{ color: 'var(--color-error)', fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalFixoMensal + totalCreditosMensal + totalAssinaturasMensal)}</span>
                                 </div>

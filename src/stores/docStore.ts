@@ -5,8 +5,10 @@ import {
     deleteDocumentFromDB,
     openDocumentFile,
     formatBytes,
+    getFileData,
     type DocMetadata,
 } from '@/lib/docDatabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { DocCategory } from '@/types';
 
 const DOC_CATEGORIES: { value: DocCategory; label: string; icon: string }[] = [
@@ -23,6 +25,7 @@ interface DocState {
     categories: typeof DOC_CATEGORIES;
     isLoading: boolean;
     loadDocuments: () => Promise<void>;
+    fetchDocuments: () => Promise<void>;
     addDocument: (doc: {
         name: string;
         category: DocCategory;
@@ -35,6 +38,7 @@ interface DocState {
     getDocsByCategory: (category: DocCategory) => DocMetadata[];
     searchDocs: (query: string) => DocMetadata[];
     downloadFile: (id: string) => Promise<void>;
+    subscribeRealtime: () => () => void;
 }
 
 export const useDocStore = create<DocState>((set, get) => ({
@@ -45,12 +49,54 @@ export const useDocStore = create<DocState>((set, get) => ({
     loadDocuments: async () => {
         set({ isLoading: true });
         try {
-            const docs = await getAllDocuments();
-            set({ documents: docs });
+            if (isSupabaseConfigured()) {
+                await get().fetchDocuments();
+            } else {
+                const docs = await getAllDocuments();
+                set({ documents: docs });
+            }
         } catch (err) {
             console.error('Erro ao carregar documentos:', err);
+            const docs = await getAllDocuments();
+            set({ documents: docs });
         }
         set({ isLoading: false });
+    },
+
+    fetchDocuments: async () => {
+        if (!isSupabaseConfigured()) return;
+
+        const { data, error } = await supabase
+            .from('documents')
+            .select('*')
+            .order('uploaded_at', { ascending: false });
+
+        if (error) {
+            console.error('Erro ao buscar documentos do Supabase:', error);
+            return;
+        }
+
+        if (data && data.length > 0) {
+            const docs: DocMetadata[] = data.map((d: any) => ({
+                id: d.id,
+                name: d.name,
+                category: d.category,
+                owner: d.owner,
+                fileSize: d.file_size || 'N/A',
+                fileName: d.file_name || '',
+                fileType: d.file_type || '',
+                uploadedAt: d.uploaded_at || '',
+                tags: d.tags || [],
+                hasFile: d.has_file || false,
+            }));
+            set({ documents: docs });
+
+            for (const doc of docs) {
+                try {
+                    await saveDocument(doc, null);
+                } catch { /* cache local best-effort */ }
+            }
+        }
     },
 
     addDocument: async ({ name, category, owner, tags, file }) => {
@@ -82,6 +128,44 @@ export const useDocStore = create<DocState>((set, get) => ({
             };
 
             await saveDocument(meta, fileData);
+
+            if (isSupabaseConfigured()) {
+                let storagePath: string | null = null;
+
+                if (file && fileData) {
+                    const path = `${meta.id}/${fileName}`;
+                    const { error: uploadErr } = await supabase.storage
+                        .from('documents')
+                        .upload(path, new Blob([fileData], { type: fileType }), {
+                            contentType: fileType,
+                            upsert: true,
+                        });
+                    if (uploadErr) {
+                        console.error('Erro ao enviar arquivo ao Storage:', uploadErr);
+                    } else {
+                        storagePath = path;
+                    }
+                }
+
+                const { error: insertErr } = await supabase.from('documents').insert({
+                    id: meta.id,
+                    name: meta.name,
+                    category: meta.category,
+                    owner: meta.owner,
+                    file_size: meta.fileSize,
+                    file_name: meta.fileName,
+                    file_type: meta.fileType,
+                    uploaded_at: meta.uploadedAt,
+                    tags: meta.tags,
+                    has_file: meta.hasFile,
+                    storage_path: storagePath,
+                });
+
+                if (insertErr) {
+                    console.error('Erro ao inserir documento no Supabase:', insertErr);
+                }
+            }
+
             set((state) => ({ documents: [meta, ...state.documents] }));
         } catch (err) {
             console.error('Erro ao salvar documento:', err);
@@ -93,6 +177,23 @@ export const useDocStore = create<DocState>((set, get) => ({
     deleteDocument: async (id) => {
         try {
             await deleteDocumentFromDB(id);
+
+            if (isSupabaseConfigured()) {
+                const { data: docRow } = await supabase
+                    .from('documents')
+                    .select('storage_path')
+                    .eq('id', id)
+                    .maybeSingle();
+
+                if (docRow?.storage_path) {
+                    await supabase.storage
+                        .from('documents')
+                        .remove([docRow.storage_path]);
+                }
+
+                await supabase.from('documents').delete().eq('id', id);
+            }
+
             set((state) => ({
                 documents: state.documents.filter((d) => d.id !== id),
             }));
@@ -103,7 +204,34 @@ export const useDocStore = create<DocState>((set, get) => ({
 
     openFile: async (id) => {
         try {
-            await openDocumentFile(id);
+            const localFile = await getFileData(id);
+            if (localFile) {
+                await openDocumentFile(id);
+                return;
+            }
+
+            if (isSupabaseConfigured()) {
+                const { data: docRow } = await supabase
+                    .from('documents')
+                    .select('storage_path, file_type, file_name')
+                    .eq('id', id)
+                    .maybeSingle();
+
+                if (docRow?.storage_path) {
+                    const { data: fileBlob } = await supabase.storage
+                        .from('documents')
+                        .download(docRow.storage_path);
+
+                    if (fileBlob) {
+                        const url = URL.createObjectURL(fileBlob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 60000);
+                        return;
+                    }
+                }
+            }
+
+            alert('Arquivo não encontrado.');
         } catch (err) {
             console.error('Erro ao abrir arquivo:', err);
             alert('Erro ao abrir o arquivo.');
@@ -112,8 +240,40 @@ export const useDocStore = create<DocState>((set, get) => ({
 
     downloadFile: async (id) => {
         try {
-            const { downloadDocumentFile } = await import('@/lib/docDatabase');
-            await downloadDocumentFile(id);
+            const localFile = await getFileData(id);
+            if (localFile) {
+                const { downloadDocumentFile } = await import('@/lib/docDatabase');
+                await downloadDocumentFile(id);
+                return;
+            }
+
+            if (isSupabaseConfigured()) {
+                const { data: docRow } = await supabase
+                    .from('documents')
+                    .select('storage_path, file_type, file_name')
+                    .eq('id', id)
+                    .maybeSingle();
+
+                if (docRow?.storage_path) {
+                    const { data: fileBlob } = await supabase.storage
+                        .from('documents')
+                        .download(docRow.storage_path);
+
+                    if (fileBlob) {
+                        const url = URL.createObjectURL(fileBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = docRow.file_name || 'download';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        return;
+                    }
+                }
+            }
+
+            alert('Arquivo não encontrado.');
         } catch (err) {
             console.error('Erro ao baixar arquivo:', err);
             alert('Erro ao baixar o arquivo.');
@@ -132,5 +292,20 @@ export const useDocStore = create<DocState>((set, get) => ({
                 d.owner.toLowerCase().includes(q) ||
                 d.tags?.some((t) => t.toLowerCase().includes(q))
         );
+    },
+
+    subscribeRealtime: () => {
+        if (!isSupabaseConfigured()) return () => {};
+
+        const channel = supabase
+            .channel('documents-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'documents' }, () => {
+                get().fetchDocuments();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     },
 }));

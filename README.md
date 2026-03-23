@@ -1,79 +1,296 @@
-# Alenfinos Intranet 🏠
+# Alenfinos Hub
 
-O **Alenfinos Intranet** é um aplicativo desktop construído para atuar como o sistema nervoso central de uma família. Ele agrega gestão financeira familiar, listas de tarefas com quadros Kanban, armazenamento de documentação e uma Assistente Pessoal alimentada por IA Local (Ollama) com contextos customizáveis para diferentes membros da casa.
+**Hub central de gestão familiar** — um aplicativo desktop que unifica finanças, tarefas, documentos, calendário, cardápio, pets e mais, tudo sincronizado em tempo real entre múltiplos computadores.
 
 <div align="center">
-  <img src="public/icon.png" alt="Logo Alenfinos" width="128"/>
+  <img src="public/favicon.svg" alt="Logo Alenfinos Hub" width="96"/>
+  <br/><br/>
+  <strong>v0.4.0</strong> &nbsp;|&nbsp; Windows Desktop &nbsp;|&nbsp; Tauri v2 + React 19
 </div>
 
-## 🌟 Visão Geral
+---
 
-O projeto substitui diversos aplicativos fragmentados por um hub central que permite a colaboração familiar, ao mesmo tempo que mantém a privacidade dos espaços individuais.
+## Funcionalidades
 
-*   **Visão Geral da Casa:** Um painel consolidado com o resumo financeiro, controle de despesas/receitas da casa, projetos em andamento, tarefas coletivas e um repositório seguro de documentos (Identidade, Contratos, etc).
-*   **Perfis Pessoais (Isis & Angélica):** Áreas isoladas voltadas para o controle de tarefas e finanças individuais acessíveis através da nova barra lateral.
-*   **Ring IA:** Assistente baseada em LLMs (rodando via *Ollama*), capaz de responder com comportamentos e contextos personalizados definidos nas configurações de cada perfil da casa, oferecendo lembretes e ajuda nativa.
-*   **Sincronização em Tempo Real:** Banco de dados alimentado por Supabase para manter tudo atualizado instantaneamente entre vários PCs.
+### Dashboard
+Painel central com widgets de clima, calendário, notícias (RSS), resumo de tarefas pendentes, finanças e atalhos rápidos. Adaptável por workspace (Isis, Angélica, Visão Geral).
 
-## 🛠️ Tecnologias Utilizadas
+### Tarefas & Compras
+Quadro Kanban com drag-and-drop, lista de compras integrada com categorias/prioridades e metas com milestones.
 
-Este projeto foi forjado utilizando ferramentas de alta performance voltadas ao desenvolvimento desktop com tecnologias web:
+### Finanças Familiares
+Gestão financeira completa com separadores **Plano** e **Crédito**: entradas mensais, gastos fixos, créditos/parcelamentos, dívidas individuais e termômetro financeiro mensal.
 
-*   **[Tauri v2](https://v2.tauri.app/):** Motor de compilação em Rust que transforma a aplicação web em executáveis `.exe` leves e eficientes para Windows (e macOS/Linux).
-*   **[React 18](https://react.dev/) + [Vite](https://vitejs.dev/):** Interface de usuário rápida com TypeScript.
-*   **[Zustand](https://github.com/pmndrs/zustand):** Genrenciador de estado moderno.
-*   **[Supabase](https://supabase.com/):** Backend-as-a-Service (Banco Postgres com Realtime API).
-*   **[Ollama](https://ollama.ai/):** Provedor de inteligência artificial local gratuita (ex: *Llama 3.2*, *Mistral*).
-*   **Lucide React:** Ícones minimalistas.
+### Documentos
+Repositório seguro de documentos organizados por categoria (identidade, comprovantes, contratos, etc.) com upload para Supabase Storage e cache local via IndexedDB.
 
-## 🚀 Como Executar e Compilar o Projeto
+### Calendário
+Calendário com eventos e comentários por dia, suporte a múltiplos autores (Isis, Angélica, Família).
 
-### 1. Pré-Requisitos
+### Cardápio Semanal
+Planejamento de refeições da semana com tipos (almoço/jantar), custos e organização por dia.
 
-*   [Node.js](https://nodejs.org/) (versão 18+)
-*   [Rust](https://www.rust-lang.org/tools/install) (Para o build do Tauri)
-*   Visual Studio C++ Build Tools (Apenas para Windows)
-*   [Ollama](https://ollama.com/download) (Instalado e rodando o comando `ollama run llama3.2`)
+### Pets
+Cadastro de animais de estimação com controle de vacinas e histórico médico completo.
 
-### 2. Configuração do Backend (Supabase)
+### Configurações
+Gerenciamento de conexão Supabase, workspace ativo e preferências do sistema.
 
-Crie um projeto no Supabase, execute o script SQL que encontra-se na raiz do repositório em `supabase/migration.sql` e crie um arquivo `.env` na raiz do Frontend com as chaves geradas:
+### Atualização Automática
+Sistema de auto-update nativo via Tauri Updater — quando uma nova versão é publicada, o app exibe um toast de notificação com barra de progresso para download e instalação automática.
+
+---
+
+## Stack Tecnológica
+
+| Camada | Tecnologia |
+|--------|-----------|
+| **Desktop Runtime** | [Tauri v2](https://v2.tauri.app/) (Rust) |
+| **Frontend** | [React 19](https://react.dev/) + TypeScript |
+| **Build Tool** | [Vite 7](https://vitejs.dev/) |
+| **Estilização** | [Tailwind CSS 4](https://tailwindcss.com/) + CSS Variables |
+| **Estado Global** | [Zustand 5](https://github.com/pmndrs/zustand) |
+| **Roteamento** | [React Router DOM 7](https://reactrouter.com/) |
+| **Backend** | [Supabase](https://supabase.com/) (PostgreSQL + Realtime + Storage) |
+| **Drag & Drop** | [@dnd-kit](https://dndkit.com/) |
+| **Ícones** | [Lucide React](https://lucide.dev/) |
+| **Testes** | [Vitest](https://vitest.dev/) + Testing Library |
+| **CI/CD** | GitHub Actions |
+| **Auto-Update** | Tauri Updater Plugin + Supabase Storage |
+
+---
+
+## Pré-Requisitos
+
+- [Node.js 20+](https://nodejs.org/)
+- [Rust](https://www.rust-lang.org/tools/install) (toolchain stable)
+- Visual Studio C++ Build Tools (Windows)
+- [Supabase](https://supabase.com/) — projeto configurado
+
+---
+
+## Instalação e Configuração
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/seu-usuario/alenfinos-hub.git
+cd alenfinos-hub
+npm install
+```
+
+### 2. Configurar variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto:
 
 ```env
-VITE_SUPABASE_URL=https://seu-id.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon-key
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-anon-key
 ```
 
-### 3. Execução em Modo de Desenvolvimento
+Encontre estas chaves em: **Supabase Dashboard > Settings > API**.
 
-Para rodar no Browser via Vite:
+### 3. Configurar o banco de dados
+
+Execute as migrações SQL no editor SQL do Supabase, na seguinte ordem:
+
+1. `supabase/migration.sql` — tabelas base (tasks, transactions, documents, etc.)
+2. `supabase/migration_v2_sync.sql` — tabelas de sincronização (shopping, calendar, goals, pets, meals, family finance)
+
+### 4. Executar em desenvolvimento
 
 ```bash
-npm install
+# Frontend no navegador (porta 1420)
 npm run dev
-```
 
-Para rodar a janela nativa de Debug do Tauri:
-
-```bash
+# App desktop com hot-reload
 npm run tauri dev
 ```
 
-### 4. Compilando para Produção (Gerar o Instalador .exe)
-
-Para gerar a versão final para ser instalada nos PCs da casa:
+### 5. Compilar para produção
 
 ```bash
 npm run tauri build
 ```
-O executável `.msi` e os `.exe` de setup poderão ser encontrados em `src-tauri/target/release/bundle/nsis/`.
+
+O instalador `.exe` será gerado em `src-tauri/target/release/bundle/nsis/`.
 
 ---
 
-## 📚 Documentação Adicional
+## Estrutura do Projeto
 
-Para entender a fundo a estrutura do código, roteamento e fluxos de estado, acesse a [DOCUMENTATION.md](./DOCUMENTATION.md).
+```
+alenfinos-hub/
+├── .github/
+│   └── workflows/
+│       └── release.yml          # CI/CD: build + release automático
+├── public/                      # Assets estáticos
+├── src/
+│   ├── components/              # Componentes reutilizáveis
+│   │   ├── CalendarWidget.tsx
+│   │   ├── FinanceModal.tsx
+│   │   ├── NewsWidget.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── UpdateToast.tsx
+│   │   └── WeatherWidget.tsx
+│   ├── hooks/
+│   │   └── useFileUpload.ts
+│   ├── lib/                     # Serviços e utilitários
+│   │   ├── supabase.ts          # Cliente Supabase
+│   │   ├── docDatabase.ts       # IndexedDB (cache local)
+│   │   ├── notificationService.ts
+│   │   └── newsService.ts       # RSS feed parser
+│   ├── pages/                   # Páginas/rotas
+│   │   ├── Dashboard.tsx        # /
+│   │   ├── Tasks.tsx            # /tasks
+│   │   ├── Finance.tsx          # /finance
+│   │   ├── Docs.tsx             # /docs
+│   │   ├── CalendarView.tsx     # /calendar
+│   │   ├── MenusView.tsx        # /menus
+│   │   ├── Pets.tsx             # /pets
+│   │   ├── Settings.tsx         # /settings
+│   │   └── Shopping.tsx         # (componente usado em Tasks)
+│   ├── stores/                  # Estado global (Zustand)
+│   │   ├── taskStore.ts
+│   │   ├── financeStore.ts
+│   │   ├── familyFinanceStore.ts
+│   │   ├── shoppingStore.ts
+│   │   ├── calendarStore.ts
+│   │   ├── calendarCommentsStore.ts
+│   │   ├── goalStore.ts
+│   │   ├── petStore.ts
+│   │   ├── menuStore.ts
+│   │   ├── docStore.ts
+│   │   ├── updateStore.ts
+│   │   ├── workspaceStore.ts
+│   │   └── themeStore.ts
+│   ├── types/
+│   │   └── index.ts
+│   ├── App.tsx                  # Roteamento + bootstrap
+│   ├── main.tsx
+│   └── index.css                # Design system (CSS Variables)
+├── src-tauri/
+│   ├── src/
+│   │   ├── lib.rs               # Comandos Rust (Ollama integration)
+│   │   └── main.rs
+│   ├── capabilities/
+│   │   └── default.json         # Permissões Tauri
+│   ├── icons/                   # Ícones do app
+│   ├── Cargo.toml               # Dependências Rust
+│   └── tauri.conf.json          # Configuração Tauri + Updater
+├── supabase/
+│   ├── migration.sql            # Migração base
+│   └── migration_v2_sync.sql    # Migração de sincronização
+├── .env                         # Variáveis de ambiente (local)
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+└── README.md
+```
 
-## 📄 Licença
+---
 
-Uso pessoal — Privado.
+## Sincronização em Tempo Real
+
+Todos os dados são sincronizados via **Supabase Realtime**. Cada store Zustand:
+
+1. **Carrega** os dados do Supabase na inicialização
+2. **Assina** um canal Realtime para receber INSERT/UPDATE/DELETE instantaneamente
+3. **Atualiza** o estado local automaticamente
+
+Isso significa que alterações feitas em um computador aparecem imediatamente em todos os outros que estejam com o app aberto.
+
+---
+
+## Sistema de Auto-Update
+
+O app possui atualização automática integrada via **Tauri Updater Plugin**.
+
+### Como funciona
+
+1. O app verifica `latest.json` no Supabase Storage ao iniciar
+2. Se existe uma versão mais recente, um **toast** aparece no canto inferior
+3. O usuário clica em **"Atualizar agora"** e o download acontece com barra de progresso
+4. Após o download, a instalação é aplicada automaticamente (modo passivo)
+
+### Como publicar uma nova versão
+
+```bash
+# 1. Atualize a versão em package.json, tauri.conf.json e updateStore.ts
+# 2. Commit e push
+git add -A && git commit -m "release: v0.5.0" && git push
+
+# 3. Crie e push a tag
+git tag v0.5.0
+git push origin v0.5.0
+```
+
+O **GitHub Actions** cuida do resto:
+- Compila o app para Windows
+- Assina o instalador com a chave do Tauri Updater
+- Faz upload do `.exe` + assinatura para o Supabase Storage
+- Gera o `latest.json` com metadados da versão
+- Atualiza a tabela `app_version` no Supabase (trigger Realtime)
+- Cria um GitHub Release com os assets
+
+### GitHub Secrets necessários
+
+Configure em **Settings > Secrets and variables > Actions**:
+
+| Secret | Descrição |
+|--------|-----------|
+| `TAURI_SIGNING_PRIVATE_KEY` | Conteúdo da chave privada (`~/.tauri/alenfinos-hub.key`) |
+| `VITE_SUPABASE_URL` | URL do projeto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Chave anon do Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (Dashboard > Settings > API) |
+
+---
+
+## Rotas
+
+| Rota | Página | Descrição |
+|------|--------|-----------|
+| `/` | Dashboard | Painel com widgets e resumos |
+| `/tasks` | Tasks | Tarefas Kanban + Compras + Metas |
+| `/finance` | Finance | Finanças familiares (Plano/Crédito) |
+| `/docs` | Docs | Documentos por categoria |
+| `/calendar` | CalendarView | Calendário com eventos e comentários |
+| `/menus` | MenusView | Cardápio semanal |
+| `/pets` | Pets | Pets, vacinas, histórico médico |
+| `/settings` | Settings | Configurações do sistema |
+
+---
+
+## Tabelas Supabase
+
+### Base (`migration.sql`)
+`tasks`, `projects`, `board_columns`, `board_cards`, `transactions`, `conversations`, `chat_messages`, `memories`, `documents`
+
+### Sincronização (`migration_v2_sync.sql`)
+`shopping_categories`, `shopping_items`, `calendar_events`, `calendar_comments`, `goals`, `goal_milestones`, `pets`, `pet_vaccinations`, `pet_medical_records`, `meals`, `family_finance_entradas`, `family_finance_fixos`, `family_finance_creditos`, `family_finance_dividas`, `family_finance_problemas`, `family_finance_termometro`
+
+### Storage Buckets
+- `documents` — arquivos de documentos do usuário
+- `app-updates` — instaladores e metadados de atualização (público)
+
+### Auto-Update
+`app_version` — registro único com versão atual, changelog e URL de download
+
+---
+
+## Scripts
+
+```bash
+npm run dev          # Servidor de desenvolvimento (Vite, porta 1420)
+npm run build        # Build do frontend (TypeScript + Vite)
+npm run tauri dev    # App desktop com hot-reload
+npm run tauri build  # Build de produção (gera instalador .exe)
+npm run build:app    # Build + copia instalador para a raiz
+npm run test         # Executa testes (Vitest)
+```
+
+---
+
+## Licença
+
+Uso pessoal — Repositório privado.
