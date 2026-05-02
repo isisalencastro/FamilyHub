@@ -1,5 +1,5 @@
 -- ============================================
--- ALENFINOS - Migration SQL para Supabase
+-- FAMILY - Migration SQL para Supabase
 -- Execute este SQL no SQL Editor do Supabase
 -- ============================================
 

@@ -160,7 +160,7 @@ export const useTaskStore = create<TaskState>()(
             },
         }),
         {
-            name: 'alenfinos-tasks',
+            name: 'family-tasks',
             partialize: (state) => ({
                 tasks: state.tasks,
             }),

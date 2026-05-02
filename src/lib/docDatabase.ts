@@ -6,7 +6,7 @@
 // Handles: save, get, delete, list, open files
 // ============================================
 
-const DB_NAME = 'alenfinos-docs-db';
+const DB_NAME = 'family-docs-db';
 const DB_VERSION = 1;
 const STORE_META = 'doc_metadata';
 const STORE_FILES = 'doc_files';

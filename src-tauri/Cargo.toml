@@ -1,12 +1,12 @@
 [package]
-name = "alenfinos_hub"
+name = "family_hub"
 version = "0.1.0"
 description = "Ring AI - Assistente de IA pessoal e familiar"
 authors = ["Isis"]
 edition = "2021"
 
 [lib]
-name = "alenfinos_hub_lib"
+name = "family_hub_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

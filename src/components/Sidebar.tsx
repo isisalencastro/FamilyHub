@@ -51,7 +51,7 @@ export function Sidebar() {
                     <div className="sidebar-brand-icon">
                         <Home size={20} color="white" />
                     </div>
-                    <span className="sidebar-brand-name">Alenfinos Hub</span>
+                    <span className="sidebar-brand-name">Family Hub</span>
                 </div>
             </div>
 

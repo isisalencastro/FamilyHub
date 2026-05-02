@@ -1,9 +1,9 @@
-# Alenfinos Hub
+# Family Hub
 
 **Hub central de gestão familiar** — um aplicativo desktop que unifica finanças, tarefas, documentos, calendário, cardápio, pets e mais, tudo sincronizado em tempo real entre múltiplos computadores.
 
 <div align="center">
-  <img src="public/favicon.svg" alt="Logo Alenfinos Hub" width="96"/>
+  <img src="public/favicon.svg" alt="Logo Family Hub" width="96"/>
   <br/><br/>
   <strong>v0.4.0</strong> &nbsp;|&nbsp; Windows Desktop &nbsp;|&nbsp; Tauri v2 + React 19
 </div>
@@ -74,8 +74,8 @@ Sistema de auto-update nativo via Tauri Updater — quando uma nova versão é p
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/alenfinos-hub.git
-cd alenfinos-hub
+git clone https://github.com/seu-usuario/family-hub.git
+cd family-hub
 npm install
 ```
 
@@ -120,7 +120,7 @@ O instalador `.exe` será gerado em `src-tauri/target/release/bundle/nsis/`.
 ## Estrutura do Projeto
 
 ```
-alenfinos-hub/
+family-hub/
 ├── .github/
 │   └── workflows/
 │       └── release.yml          # CI/CD: build + release automático
@@ -239,7 +239,7 @@ Configure em **Settings > Secrets and variables > Actions**:
 
 | Secret | Descrição |
 |--------|-----------|
-| `TAURI_SIGNING_PRIVATE_KEY` | Conteúdo da chave privada (`~/.tauri/alenfinos-hub.key`) |
+| `TAURI_SIGNING_PRIVATE_KEY` | Conteúdo da chave privada (`~/.tauri/family-hub.key`) |
 | `VITE_SUPABASE_URL` | URL do projeto Supabase |
 | `VITE_SUPABASE_ANON_KEY` | Chave anon do Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (Dashboard > Settings > API) |

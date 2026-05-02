@@ -1,5 +1,5 @@
 {
-  "name": "alenfinos-hub",
+  "name": "family-hub",
   "private": true,
   "version": "0.4.0",
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "build:app": "npm run tauri build && node -e \"require('fs').copyFileSync('src-tauri/target/release/bundle/nsis/Alenfinos Hub_0.4.0_x64-setup.exe', 'Alenfinos Hub_0.4.0_x64-setup.exe')\"",
+    "build:app": "npm run tauri build && node -e \"require('fs').copyFileSync('src-tauri/target/release/bundle/nsis/Family Hub_0.4.0_x64-setup.exe', 'Family Hub_0.4.0_x64-setup.exe')\"",
     "test": "vitest"
   },
   "dependencies": {

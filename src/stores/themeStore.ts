@@ -11,7 +11,7 @@ interface ThemeState {
 // Read initial theme from localStorage or default to 'dark'
 const getInitialTheme = (): Theme => {
     try {
-        const stored = localStorage.getItem('alenfinos-theme');
+        const stored = localStorage.getItem('family-theme');
         if (stored === 'light' || stored === 'dark') return stored;
     } catch { }
     return 'dark';
@@ -21,7 +21,7 @@ const getInitialTheme = (): Theme => {
 const applyTheme = (theme: Theme) => {
     document.documentElement.setAttribute('data-theme', theme);
     try {
-        localStorage.setItem('alenfinos-theme', theme);
+        localStorage.setItem('family-theme', theme);
     } catch { }
 };
 

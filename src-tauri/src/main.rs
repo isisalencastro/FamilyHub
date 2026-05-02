@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    alenfinos_hub_lib::run()
+    family_hub_lib::run()
 }

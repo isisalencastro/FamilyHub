@@ -1,5 +1,5 @@
 -- ============================================
--- ALENFINOS HUB - Migration V2: Sincronização Completa
+-- FAMILY HUB - Migration V2: Sincronização Completa
 -- Execute este SQL no SQL Editor do Supabase
 -- ============================================
 

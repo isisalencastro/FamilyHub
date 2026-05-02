@@ -1,4 +1,4 @@
-# Documentacao Tecnica — Alenfinos Hub
+# Documentacao Tecnica — Family Hub
 
 Documentacao detalhada da arquitetura, fluxos de dados e decisoes tecnicas do projeto.
 
@@ -131,7 +131,7 @@ Se `VITE_SUPABASE_URL` nao estiver configurado, o app roda em **modo local**: os
 - **Workspaces**: "isis", "angelica", "visao-geral"
 
 ### themeStore
-- **Armazenamento**: `localStorage` (chave `alenfinos-theme`)
+- **Armazenamento**: `localStorage` (chave `family-theme`)
 - **Temas**: light/dark via atributo `data-theme` no HTML
 
 ---
@@ -214,8 +214,8 @@ Tag push (v0.5.0)
   │     └── Gera: .exe + .exe.sig (assinado com TAURI_SIGNING_PRIVATE_KEY)
   │
   ├── Upload para Supabase Storage (bucket: app-updates)
-  │     ├── Alenfinos-Hub_0.5.0_x64-setup.exe
-  │     └── Alenfinos-Hub_0.5.0_x64-setup.exe.sig
+  │     ├── Familys-Hub_0.5.0_x64-setup.exe
+  │     └── Familys-Hub_0.5.0_x64-setup.exe.sig
   │
   ├── Gera e upload latest.json
   │     └── { version, signature, url, pub_date, platforms }
@@ -230,7 +230,7 @@ Tag push (v0.5.0)
 
 | Secret | Onde encontrar |
 |--------|---------------|
-| `TAURI_SIGNING_PRIVATE_KEY` | `~/.tauri/alenfinos-hub.key` (gerado localmente) |
+| `TAURI_SIGNING_PRIVATE_KEY` | `~/.tauri/family-hub.key` (gerado localmente) |
 | `VITE_SUPABASE_URL` | Supabase Dashboard > Settings > API |
 | `VITE_SUPABASE_ANON_KEY` | Supabase Dashboard > Settings > API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard > Settings > API (service_role) |

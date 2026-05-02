@@ -13,7 +13,7 @@ export function SettingsPage() {
             <div className="page-container">
                 <div className="page-header">
                     <h1 className="page-title">Configurações</h1>
-                    <p className="page-subtitle">Gerencie as configurações do Alenfinos Hub</p>
+                    <p className="page-subtitle">Gerencie as configurações do Family Hub</p>
                 </div>
 
                 {/* Connection Status */}
@@ -70,7 +70,7 @@ export function SettingsPage() {
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
                         <p>
-                            <strong style={{ color: 'var(--color-text-primary)' }}>Alenfinos Hub</strong> v0.3.0
+                            <strong style={{ color: 'var(--color-text-primary)' }}>Family Hub</strong> v0.3.0
                         </p>
                         <p>
                             Intranet familiar.{' '}
