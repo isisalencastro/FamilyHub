@@ -101,8 +101,8 @@ export function FinanceModal({ type, onClose, onSubmit, initialData, defaultCred
         else if (defaultCreditoType === 'parcelamento') title = '💳 Novo Parcelamento';
         else title = '💳 Nova Assinatura';
     }
-    if (type === 'divida-user2') title = initialData ? '✏️ Editar Dívida (User 2)' : '⚠️ Nova Dívida (User 2)';
-    if (type === 'divida-user1') title = initialData ? '✏️ Editar Dívida (User 1)' : '⚠️ Nova Dívida (User 1)';
+    if (type === 'divida-user2') title = initialData ? '✏️ Editar Dívida (User2)' : '⚠️ Nova Dívida (User2)';
+    if (type === 'divida-user1') title = initialData ? '✏️ Editar Dívida (User1)' : '⚠️ Nova Dívida (User1)';
     if (type === 'problema') title = initialData ? '✏️ Editar Problema' : '🔴 Novo Problema Financeiro';
 
     return (

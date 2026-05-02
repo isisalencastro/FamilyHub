@@ -92,14 +92,14 @@ export function Shopping() {
 
     const getAssignedAvatar = (assigned?: 'user2' | 'user1') => {
         if (!assigned) return null;
-        const isUser 2 = assigned === 'user2';
+        const isUser2 = assigned === 'user2';
         return (
             <div
                 style={{
                     width: 28,
                     height: 28,
                     borderRadius: '50%',
-                    background: isUser 2
+                    background: isUser2
                         ? 'linear-gradient(135deg, var(--color-ws-user2), #6d28d9)'
                         : 'linear-gradient(135deg, var(--color-ws-user1), #db2777)',
                     display: 'flex',
@@ -111,7 +111,7 @@ export function Shopping() {
                     flexShrink: 0,
                 }}
             >
-                {isUser 2 ? 'I' : 'A'}
+                {isUser2 ? 'I' : 'A'}
             </div>
         );
     };

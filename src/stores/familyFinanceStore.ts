@@ -66,7 +66,7 @@ export interface FamilyFinanceState {
     fixoMensal: FixoItem[];
     creditos: ParcelamentoItem[];
     dividasUser1: DividaItem[];
-    dividasUser 2: DividaItem[];
+    dividasUser2: DividaItem[];
     problemas: ProblemaItem[];
     termometroFiles: Record<string, MesTermometro>;
     isLoading: boolean;
@@ -95,10 +95,10 @@ export interface FamilyFinanceState {
     removeDividaUser1: (id: string) => Promise<void>;
     toggleDividaUser1Paid: (id: string) => Promise<void>;
 
-    addDividaUser 2: (item: Omit<DividaItem, 'id'>) => Promise<void>;
-    updateDividaUser 2: (id: string, item: Partial<DividaItem>) => Promise<void>;
-    removeDividaUser 2: (id: string) => Promise<void>;
-    toggleDividaUser 2Paid: (id: string) => Promise<void>;
+    addDividaUser2: (item: Omit<DividaItem, 'id'>) => Promise<void>;
+    updateDividaUser2: (id: string, item: Partial<DividaItem>) => Promise<void>;
+    removeDividaUser2: (id: string) => Promise<void>;
+    toggleDividaUser2Paid: (id: string) => Promise<void>;
 
     addProblema: (item: Omit<ProblemaItem, 'id'>) => Promise<void>;
     updateProblema: (id: string, item: Partial<ProblemaItem>) => Promise<void>;
@@ -141,7 +141,7 @@ const defaultCreditos: ParcelamentoItem[] = [];
 
 const defaultDividasUser1: DividaItem[] = [];
 
-const defaultDividasUser 2: DividaItem[] = [];
+const defaultDividasUser2: DividaItem[] = [];
 
 const defaultProblemas: ProblemaItem[] = [];
 
@@ -165,7 +165,7 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
     fixoMensal: defaultFixos,
     creditos: defaultCreditos,
     dividasUser1: defaultDividasUser1,
-    dividasUser 2: defaultDividasUser 2,
+    dividasUser2: defaultDividasUser2,
     problemas: defaultProblemas,
     termometroFiles: {},
     isLoading: false,
@@ -214,7 +214,7 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
             updates.dividasUser1 = divRes.data
                 .filter((d: any) => d.owner === 'user1')
                 .map((d: any) => ({ id: d.id, name: d.name, total: parseFloat(d.total), desc: d.descricao || '', paid: d.paid }));
-            updates.dividasUser 2 = divRes.data
+            updates.dividasUser2 = divRes.data
                 .filter((d: any) => d.owner === 'user2')
                 .map((d: any) => ({ id: d.id, name: d.name, total: parseFloat(d.total), desc: d.descricao || '', paid: d.paid }));
         }
@@ -268,7 +268,7 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
                 creditos: s.creditos.map(c => ({ ...c, paid: false })),
                 problemas: s.problemas.map(p => ({ ...p, paid: false })),
                 dividasUser1: s.dividasUser1.map(d => ({ ...d, paid: false })),
-                dividasUser 2: s.dividasUser 2.map(d => ({ ...d, paid: false })),
+                dividasUser2: s.dividasUser2.map(d => ({ ...d, paid: false })),
                 termometroFiles: {
                     ...s.termometroFiles,
                     [currentStr]: createEmptyMonth(currentStr, saldoHeranca, getMonthName(parseInt(currentStr.split('-')[0])))
@@ -457,13 +457,13 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
     },
 
     // ── DIVIDAS ISIS ──
-    addDividaUser 2: async (item) => {
+    addDividaUser2: async (item) => {
         const id = generateId();
-        set((s) => ({ dividasUser 2: [...s.dividasUser 2, { ...item, paid: false, id }] }));
+        set((s) => ({ dividasUser2: [...s.dividasUser2, { ...item, paid: false, id }] }));
         if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'user2');
     },
-    updateDividaUser 2: async (id, item) => {
-        set((s) => ({ dividasUser 2: s.dividasUser 2.map(d => d.id === id ? { ...d, ...item } : d) }));
+    updateDividaUser2: async (id, item) => {
+        set((s) => ({ dividasUser2: s.dividasUser2.map(d => d.id === id ? { ...d, ...item } : d) }));
         if (isSupabaseConfigured()) {
             const db: any = {};
             if (item.name !== undefined) db.name = item.name;
@@ -473,15 +473,15 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
             if (Object.keys(db).length > 0) await supabase.from('family_finance_dividas').update(db).eq('id', id);
         }
     },
-    removeDividaUser 2: async (id) => {
-        set((s) => ({ dividasUser 2: s.dividasUser 2.filter(d => d.id !== id) }));
+    removeDividaUser2: async (id) => {
+        set((s) => ({ dividasUser2: s.dividasUser2.filter(d => d.id !== id) }));
         if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').delete().eq('id', id);
     },
-    toggleDividaUser 2Paid: async (id) => {
-        const item = get().dividasUser 2.find(d => d.id === id);
+    toggleDividaUser2Paid: async (id) => {
+        const item = get().dividasUser2.find(d => d.id === id);
         if (!item) return;
         const newPaid = !item.paid;
-        set((s) => ({ dividasUser 2: s.dividasUser 2.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
+        set((s) => ({ dividasUser2: s.dividasUser2.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
         if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').update({ paid: newPaid }).eq('id', id);
     },
 

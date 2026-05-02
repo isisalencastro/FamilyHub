@@ -5,8 +5,8 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, MessageCircl
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 const AUTHOR_CONFIG: Record<string, { displayName: string; avatar: string; color: string }> = {
-    user2: { displayName: 'User 2', avatar: 'I', color: '#8b5cf6' },
-    user1: { displayName: 'User 1', avatar: 'A', color: '#ec4899' },
+    user2: { displayName: 'User2', avatar: 'I', color: '#8b5cf6' },
+    user1: { displayName: 'User1', avatar: 'A', color: '#ec4899' },
     familia: { displayName: 'Família', avatar: 'F', color: '#f59e0b' },
 };
 

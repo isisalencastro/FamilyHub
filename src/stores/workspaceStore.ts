@@ -5,14 +5,14 @@ export const WORKSPACES: Workspace[] = [
     {
         id: 'user2',
         name: 'user2',
-        displayName: 'User 2',
+        displayName: 'User2',
         avatar: 'I',
         color: 'user2',
     },
     {
         id: 'user1',
         name: 'user1',
-        displayName: 'User 1',
+        displayName: 'User1',
         avatar: 'A',
         color: 'user1',
     },
