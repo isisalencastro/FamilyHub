@@ -3,18 +3,18 @@ import type { Workspace } from '@/types';
 
 export const WORKSPACES: Workspace[] = [
     {
-        id: 'isis',
-        name: 'isis',
-        displayName: 'Isis',
+        id: 'user2',
+        name: 'user2',
+        displayName: 'User 2',
         avatar: 'I',
-        color: 'isis',
+        color: 'user2',
     },
     {
-        id: 'angelica',
-        name: 'angelica',
-        displayName: 'Angélica',
+        id: 'user1',
+        name: 'user1',
+        displayName: 'User 1',
         avatar: 'A',
-        color: 'angelica',
+        color: 'user1',
     },
     {
         id: 'familia',

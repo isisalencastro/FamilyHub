@@ -305,7 +305,7 @@ export function Docs() {
                         </select>
                         <input
                             className="input"
-                            placeholder="Responsável (ex: Isis, Angélica, Família)..."
+                            placeholder="Responsável (ex: User 2, User 1, Família)..."
                             value={newOwner}
                             onChange={(e) => setNewOwner(e.target.value)}
                         />

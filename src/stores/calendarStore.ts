@@ -7,7 +7,7 @@ export interface CalendarEvent {
     description?: string;
     date: string; // YYYY-MM-DD
     time?: string; // HH:mm
-    owner: 'isis' | 'angelica' | 'both';
+    owner: 'user2' | 'user1' | 'both';
 }
 
 interface CalendarState {

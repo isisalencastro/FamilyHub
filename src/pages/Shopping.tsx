@@ -29,7 +29,7 @@ export function Shopping() {
     const [newItemName, setNewItemName] = useState('');
     const [newItemCategory, setNewItemCategory] = useState(categories[0]?.id || '');
     const [newItemPriority, setNewItemPriority] = useState<'normal' | 'high'>('normal');
-    const [newItemAssigned, setNewItemAssigned] = useState<'isis' | 'angelica' | undefined>(undefined);
+    const [newItemAssigned, setNewItemAssigned] = useState<'user2' | 'user1' | undefined>(undefined);
 
     // New category modal
     const [showNewCategory, setShowNewCategory] = useState(false);
@@ -90,18 +90,18 @@ export function Shopping() {
         return `${days} dias atrás`;
     };
 
-    const getAssignedAvatar = (assigned?: 'isis' | 'angelica') => {
+    const getAssignedAvatar = (assigned?: 'user2' | 'user1') => {
         if (!assigned) return null;
-        const isIsis = assigned === 'isis';
+        const isUser 2 = assigned === 'user2';
         return (
             <div
                 style={{
                     width: 28,
                     height: 28,
                     borderRadius: '50%',
-                    background: isIsis
-                        ? 'linear-gradient(135deg, var(--color-ws-isis), #6d28d9)'
-                        : 'linear-gradient(135deg, var(--color-ws-angelica), #db2777)',
+                    background: isUser 2
+                        ? 'linear-gradient(135deg, var(--color-ws-user2), #6d28d9)'
+                        : 'linear-gradient(135deg, var(--color-ws-user1), #db2777)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -111,7 +111,7 @@ export function Shopping() {
                     flexShrink: 0,
                 }}
             >
-                {isIsis ? 'I' : 'A'}
+                {isUser 2 ? 'I' : 'A'}
             </div>
         );
     };

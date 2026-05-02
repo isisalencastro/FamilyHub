@@ -9,7 +9,7 @@ export interface ShoppingItem {
     completed: boolean;
     quantity: number;
     priority: 'normal' | 'high';
-    assignedTo?: 'isis' | 'angelica';
+    assignedTo?: 'user2' | 'user1';
     addedAt: string;
     completedBy?: string;
 }

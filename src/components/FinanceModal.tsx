@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check } from 'lucide-react';
 
-export type FinanceModalType = 'renda' | 'fixo' | 'credito' | 'divida-isis' | 'divida-angelica' | 'problema' | null;
+export type FinanceModalType = 'renda' | 'fixo' | 'credito' | 'divida-user2' | 'divida-user1' | 'problema' | null;
 
 interface FinanceModalProps {
     type: FinanceModalType;
@@ -47,7 +47,7 @@ export function FinanceModal({ type, onClose, onSubmit, initialData, defaultCred
         // Basic validation
         if (!values.name?.trim()) return;
         if ((type === 'renda' || type === 'fixo' || type === 'credito') && !values.value) return;
-        if ((type === 'divida-isis' || type === 'divida-angelica' || type === 'problema') && !values.total) return;
+        if ((type === 'divida-user2' || type === 'divida-user1' || type === 'problema') && !values.total) return;
 
         onSubmit(values);
         onClose();
@@ -101,8 +101,8 @@ export function FinanceModal({ type, onClose, onSubmit, initialData, defaultCred
         else if (defaultCreditoType === 'parcelamento') title = '💳 Novo Parcelamento';
         else title = '💳 Nova Assinatura';
     }
-    if (type === 'divida-isis') title = initialData ? '✏️ Editar Dívida (Isis)' : '⚠️ Nova Dívida (Isis)';
-    if (type === 'divida-angelica') title = initialData ? '✏️ Editar Dívida (Angélica)' : '⚠️ Nova Dívida (Angélica)';
+    if (type === 'divida-user2') title = initialData ? '✏️ Editar Dívida (User 2)' : '⚠️ Nova Dívida (User 2)';
+    if (type === 'divida-user1') title = initialData ? '✏️ Editar Dívida (User 1)' : '⚠️ Nova Dívida (User 1)';
     if (type === 'problema') title = initialData ? '✏️ Editar Problema' : '🔴 Novo Problema Financeiro';
 
     return (
@@ -167,7 +167,7 @@ export function FinanceModal({ type, onClose, onSubmit, initialData, defaultCred
                     </>
                 )}
 
-                {(type === 'divida-isis' || type === 'divida-angelica') && (
+                {(type === 'divida-user2' || type === 'divida-user1') && (
                     <>
                         {renderInput('name', 'Nome da Conta', 'Ex: Empréstimo Banco X', false, true)}
                         {renderInput('total', 'Valor Total Restante (R$)', 'Ex: 1500.00', true)}

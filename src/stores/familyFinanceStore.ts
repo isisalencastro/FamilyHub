@@ -65,8 +65,8 @@ export interface FamilyFinanceState {
     entradas: Entrada[];
     fixoMensal: FixoItem[];
     creditos: ParcelamentoItem[];
-    dividasAngelica: DividaItem[];
-    dividasIsis: DividaItem[];
+    dividasUser1: DividaItem[];
+    dividasUser 2: DividaItem[];
     problemas: ProblemaItem[];
     termometroFiles: Record<string, MesTermometro>;
     isLoading: boolean;
@@ -90,15 +90,15 @@ export interface FamilyFinanceState {
     toggleCongelado: (id: string) => Promise<void>;
     toggleCreditoPaid: (id: string) => Promise<void>;
 
-    addDividaAngelica: (item: Omit<DividaItem, 'id'>) => Promise<void>;
-    updateDividaAngelica: (id: string, item: Partial<DividaItem>) => Promise<void>;
-    removeDividaAngelica: (id: string) => Promise<void>;
-    toggleDividaAngelicaPaid: (id: string) => Promise<void>;
+    addDividaUser1: (item: Omit<DividaItem, 'id'>) => Promise<void>;
+    updateDividaUser1: (id: string, item: Partial<DividaItem>) => Promise<void>;
+    removeDividaUser1: (id: string) => Promise<void>;
+    toggleDividaUser1Paid: (id: string) => Promise<void>;
 
-    addDividaIsis: (item: Omit<DividaItem, 'id'>) => Promise<void>;
-    updateDividaIsis: (id: string, item: Partial<DividaItem>) => Promise<void>;
-    removeDividaIsis: (id: string) => Promise<void>;
-    toggleDividaIsisPaid: (id: string) => Promise<void>;
+    addDividaUser 2: (item: Omit<DividaItem, 'id'>) => Promise<void>;
+    updateDividaUser 2: (id: string, item: Partial<DividaItem>) => Promise<void>;
+    removeDividaUser 2: (id: string) => Promise<void>;
+    toggleDividaUser 2Paid: (id: string) => Promise<void>;
 
     addProblema: (item: Omit<ProblemaItem, 'id'>) => Promise<void>;
     updateProblema: (id: string, item: Partial<ProblemaItem>) => Promise<void>;
@@ -133,65 +133,20 @@ const getCurrentMonthStr = () => {
 };
 
 // Default initial data (used as seed when Supabase is empty)
-const defaultEntradas: Entrada[] = [
-    { id: 'e1', name: 'Salário Angélica', value: 2000, isFixed: true },
-    { id: 'e2', name: 'Salário Isis', value: 1750, isFixed: true },
-    { id: 'e3', name: 'Vale Alimentação Angélica', value: 390, isFixed: true },
-    { id: 'e4', name: 'Vale Alimentação Isis', value: 538, isFixed: true },
-];
+const defaultEntradas: Entrada[] = [];
 
-const defaultFixos: FixoItem[] = [
-    { id: 'f1', name: 'Aluguel', value: 1183.24, paid: false, isFixed: true },
-    { id: 'f2', name: 'Alimentação / Mercado', value: 1000, paid: false, isFixed: true },
-    { id: 'f3', name: 'Eletricidade', value: 100, paid: false, isFixed: true },
-    { id: 'f4', name: 'Terapia Angélica', value: 400, paid: false, isFixed: true },
-    { id: 'f5', name: 'Faculdade Isis', value: 305.09, paid: false, isFixed: true },
-    { id: 'f6', name: 'Terapia Isis', value: 300, paid: false, isFixed: true },
-    { id: 'f7', name: 'Rações', value: 150, paid: false, isFixed: true },
-    { id: 'f8', name: 'Internet', value: 100, paid: false, isFixed: true },
-    { id: 'f9', name: 'Água', value: 100, paid: false, isFixed: true },
-    { id: 'f10', name: 'Dentista Isis', value: 90, paid: false, isFixed: true },
-];
+const defaultFixos: FixoItem[] = [];
 
-const defaultCreditos: ParcelamentoItem[] = [
-    { id: 'c1', name: 'Emp. Nubank', value: 208.12, type: 'parcelamento', congelado: false, progresso: '3/7', isEvelise: false },
-    { id: 'c2', name: 'Óculos Isis', value: 160, type: 'parcelamento', congelado: true, progresso: '2/6', isEvelise: true },
-    { id: 'c3', name: 'TV', value: 150, type: 'parcelamento', congelado: true, progresso: '0/4', isEvelise: true },
-    { id: 'c4', name: 'Disney+', value: 66, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c5', name: 'Cooktop', value: 65.07, type: 'parcelamento', congelado: false, progresso: '3/6', isEvelise: true },
-    { id: 'c6', name: 'Claro Flex', value: 40, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c7', name: 'Cort. Grama', value: 38.32, type: 'parcelamento', congelado: false, progresso: '2/6', isEvelise: false },
-    { id: 'c8', name: 'Plano TIM', value: 36.99, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c9', name: 'Canva', value: 35, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c10', name: 'Max', value: 29.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c11', name: 'Spotify', value: 27.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c12', name: 'Netflix', value: 20.90, type: 'assinatura', congelado: false, progresso: '', isEvelise: false },
-    { id: 'c13', name: 'Escola Breno', value: 19.90, type: 'parcelamento', congelado: false, progresso: '5/12', isEvelise: false },
-];
+const defaultCreditos: ParcelamentoItem[] = [];
 
-const defaultDividasAngelica: DividaItem[] = [
-    { id: 'da1', name: 'Banrisul', total: 1507, desc: '---' },
-    { id: 'da2', name: 'WillBank', total: 1410, desc: '24x R$ 58,70' },
-    { id: 'da3', name: 'Alcydes Maia', total: 1400, desc: '2x R$ 700,00' },
-    { id: 'da4', name: 'Nubank', total: 662, desc: '12x R$ 53,20' },
-    { id: 'da5', name: 'MEI', total: 600, desc: '---' },
-    { id: 'da6', name: 'Uninter', total: 350, desc: '---' },
-];
+const defaultDividasUser1: DividaItem[] = [];
 
-const defaultDividasIsis: DividaItem[] = [
-    { id: 'di1', name: 'Emp. BB', total: 3817.47, desc: '' },
-    { id: 'di2', name: 'Crédito BB', total: 5045.61, desc: '' },
-    { id: 'di3', name: 'Emp. BB (2)', total: 296.54, desc: '' },
-];
+const defaultDividasUser 2: DividaItem[] = [];
 
-const defaultProblemas: ProblemaItem[] = [
-    { id: 'prob1', name: 'Bulla Isis', total: 600, desc: 'R$140 descontado da folha', encerraEm: 'Agosto/2026', status: '1/6' },
-    { id: 'prob2', name: 'Crédito Nubank', total: 401, desc: 'Fatura mês', encerraEm: 'Março/2026', status: '' },
-    { id: 'prob3', name: 'Crédito Inter', total: 858.83, desc: 'Fatura mês', encerraEm: 'Março/2026', status: '' },
-];
+const defaultProblemas: ProblemaItem[] = [];
 
 // ───────────────────────────────────────────
-// Helper: Supabase CRUD wrappers for dividas (shared between angelica/isis)
+// Helper: Supabase CRUD wrappers for dividas (shared between user1/user2)
 // ───────────────────────────────────────────
 const upsertDivida = async (id: string, data: Omit<DividaItem, 'id'>, owner: string) => {
     await supabase.from('family_finance_dividas').upsert({
@@ -209,8 +164,8 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
     entradas: defaultEntradas,
     fixoMensal: defaultFixos,
     creditos: defaultCreditos,
-    dividasAngelica: defaultDividasAngelica,
-    dividasIsis: defaultDividasIsis,
+    dividasUser1: defaultDividasUser1,
+    dividasUser 2: defaultDividasUser 2,
     problemas: defaultProblemas,
     termometroFiles: {},
     isLoading: false,
@@ -256,11 +211,11 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
         }
 
         if (!divRes.error && divRes.data && divRes.data.length > 0) {
-            updates.dividasAngelica = divRes.data
-                .filter((d: any) => d.owner === 'angelica')
+            updates.dividasUser1 = divRes.data
+                .filter((d: any) => d.owner === 'user1')
                 .map((d: any) => ({ id: d.id, name: d.name, total: parseFloat(d.total), desc: d.descricao || '', paid: d.paid }));
-            updates.dividasIsis = divRes.data
-                .filter((d: any) => d.owner === 'isis')
+            updates.dividasUser 2 = divRes.data
+                .filter((d: any) => d.owner === 'user2')
                 .map((d: any) => ({ id: d.id, name: d.name, total: parseFloat(d.total), desc: d.descricao || '', paid: d.paid }));
         }
 
@@ -312,8 +267,8 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
                 fixoMensal: s.fixoMensal.filter(f => f.isFixed).map(f => ({ ...f, paid: false })),
                 creditos: s.creditos.map(c => ({ ...c, paid: false })),
                 problemas: s.problemas.map(p => ({ ...p, paid: false })),
-                dividasAngelica: s.dividasAngelica.map(d => ({ ...d, paid: false })),
-                dividasIsis: s.dividasIsis.map(d => ({ ...d, paid: false })),
+                dividasUser1: s.dividasUser1.map(d => ({ ...d, paid: false })),
+                dividasUser 2: s.dividasUser 2.map(d => ({ ...d, paid: false })),
                 termometroFiles: {
                     ...s.termometroFiles,
                     [currentStr]: createEmptyMonth(currentStr, saldoHeranca, getMonthName(parseInt(currentStr.split('-')[0])))
@@ -473,13 +428,13 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
     },
 
     // ── DIVIDAS ANGELICA ──
-    addDividaAngelica: async (item) => {
+    addDividaUser1: async (item) => {
         const id = generateId();
-        set((s) => ({ dividasAngelica: [...s.dividasAngelica, { ...item, paid: false, id }] }));
-        if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'angelica');
+        set((s) => ({ dividasUser1: [...s.dividasUser1, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'user1');
     },
-    updateDividaAngelica: async (id, item) => {
-        set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, ...item } : d) }));
+    updateDividaUser1: async (id, item) => {
+        set((s) => ({ dividasUser1: s.dividasUser1.map(d => d.id === id ? { ...d, ...item } : d) }));
         if (isSupabaseConfigured()) {
             const db: any = {};
             if (item.name !== undefined) db.name = item.name;
@@ -489,26 +444,26 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
             if (Object.keys(db).length > 0) await supabase.from('family_finance_dividas').update(db).eq('id', id);
         }
     },
-    removeDividaAngelica: async (id) => {
-        set((s) => ({ dividasAngelica: s.dividasAngelica.filter(d => d.id !== id) }));
+    removeDividaUser1: async (id) => {
+        set((s) => ({ dividasUser1: s.dividasUser1.filter(d => d.id !== id) }));
         if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').delete().eq('id', id);
     },
-    toggleDividaAngelicaPaid: async (id) => {
-        const item = get().dividasAngelica.find(d => d.id === id);
+    toggleDividaUser1Paid: async (id) => {
+        const item = get().dividasUser1.find(d => d.id === id);
         if (!item) return;
         const newPaid = !item.paid;
-        set((s) => ({ dividasAngelica: s.dividasAngelica.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
+        set((s) => ({ dividasUser1: s.dividasUser1.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
         if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').update({ paid: newPaid }).eq('id', id);
     },
 
     // ── DIVIDAS ISIS ──
-    addDividaIsis: async (item) => {
+    addDividaUser 2: async (item) => {
         const id = generateId();
-        set((s) => ({ dividasIsis: [...s.dividasIsis, { ...item, paid: false, id }] }));
-        if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'isis');
+        set((s) => ({ dividasUser 2: [...s.dividasUser 2, { ...item, paid: false, id }] }));
+        if (isSupabaseConfigured()) await upsertDivida(id, { ...item, paid: false }, 'user2');
     },
-    updateDividaIsis: async (id, item) => {
-        set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, ...item } : d) }));
+    updateDividaUser 2: async (id, item) => {
+        set((s) => ({ dividasUser 2: s.dividasUser 2.map(d => d.id === id ? { ...d, ...item } : d) }));
         if (isSupabaseConfigured()) {
             const db: any = {};
             if (item.name !== undefined) db.name = item.name;
@@ -518,15 +473,15 @@ export const useFamilyFinanceStore = create<FamilyFinanceState>((set, get) => ({
             if (Object.keys(db).length > 0) await supabase.from('family_finance_dividas').update(db).eq('id', id);
         }
     },
-    removeDividaIsis: async (id) => {
-        set((s) => ({ dividasIsis: s.dividasIsis.filter(d => d.id !== id) }));
+    removeDividaUser 2: async (id) => {
+        set((s) => ({ dividasUser 2: s.dividasUser 2.filter(d => d.id !== id) }));
         if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').delete().eq('id', id);
     },
-    toggleDividaIsisPaid: async (id) => {
-        const item = get().dividasIsis.find(d => d.id === id);
+    toggleDividaUser 2Paid: async (id) => {
+        const item = get().dividasUser 2.find(d => d.id === id);
         if (!item) return;
         const newPaid = !item.paid;
-        set((s) => ({ dividasIsis: s.dividasIsis.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
+        set((s) => ({ dividasUser 2: s.dividasUser 2.map(d => d.id === id ? { ...d, paid: newPaid } : d) }));
         if (isSupabaseConfigured()) await supabase.from('family_finance_dividas').update({ paid: newPaid }).eq('id', id);
     },
 

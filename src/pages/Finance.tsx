@@ -47,15 +47,15 @@ export function Finance() {
             if (modalType === 'renda') store.updateEntrada(editingItem.id, { name: data.name, value: val, isFixed: data.isFixed });
             else if (modalType === 'fixo') store.updateFixo(editingItem.id, { name: data.name, value: val, isFixed: data.isFixed });
             else if (modalType === 'credito') store.updateCredito(editingItem.id, { name: data.name, value: val, type: data.type, congelado: !!data.congelado, progresso: data.progresso || '', isEvelise: !!data.isEvelise, startMonth: data.startMonth });
-            else if (modalType === 'divida-isis') store.updateDividaIsis(editingItem.id, { name: data.name, desc: data.desc || '', total });
-            else if (modalType === 'divida-angelica') store.updateDividaAngelica(editingItem.id, { name: data.name, desc: data.desc || '', total });
+            else if (modalType === 'divida-user2') store.updateDividaUser 2(editingItem.id, { name: data.name, desc: data.desc || '', total });
+            else if (modalType === 'divida-user1') store.updateDividaUser1(editingItem.id, { name: data.name, desc: data.desc || '', total });
             else if (modalType === 'problema') store.updateProblema(editingItem.id, { name: data.name, total, desc: data.desc || '', encerraEm: data.encerraEm || '', status: data.status || '' });
         } else {
             if (modalType === 'renda' && val && data.name) store.addEntrada({ name: data.name, value: val, isFixed: data.isFixed });
             else if (modalType === 'fixo' && val && data.name) store.addFixo({ name: data.name, value: val, isFixed: data.isFixed });
             else if (modalType === 'credito' && val && data.name) store.addCredito({ name: data.name, value: val, type: data.type, congelado: !!data.congelado, progresso: data.progresso || '', isEvelise: !!data.isEvelise, startMonth: data.startMonth });
-            else if (modalType === 'divida-isis' && total && data.name) store.addDividaIsis({ name: data.name, desc: data.desc || '', total });
-            else if (modalType === 'divida-angelica' && total && data.name) store.addDividaAngelica({ name: data.name, desc: data.desc || '', total });
+            else if (modalType === 'divida-user2' && total && data.name) store.addDividaUser 2({ name: data.name, desc: data.desc || '', total });
+            else if (modalType === 'divida-user1' && total && data.name) store.addDividaUser1({ name: data.name, desc: data.desc || '', total });
             else if (modalType === 'problema' && total && data.name) store.addProblema({ name: data.name, total, desc: data.desc || '', encerraEm: data.encerraEm || '', status: data.status || '' });
         }
     };
@@ -88,8 +88,8 @@ export function Finance() {
 
     const saldoLivreReal = totalRenda - totalFixoMensal - totalCreditosMensal - totalAssinaturasMensal - totalProblemasMensal;
 
-    const totalDivAngelica = store.dividasAngelica.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
-    const totalDivIsis = store.dividasIsis.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
+    const totalDivUser1 = store.dividasUser1.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
+    const totalDivUser 2 = store.dividasUser 2.filter(d => !d.paid).reduce((a, b) => a + b.total, 0);
 
     // Variáveis e lógicas do Termômetro foram removidas a pedido do usuário.
 
@@ -294,14 +294,14 @@ export function Finance() {
                         <div className="card">
                             <div className="card-header">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <h2 className="card-title">Dívidas Ocultas (Angélica)</h2>
+                                    <h2 className="card-title">Dívidas Ocultas (User 1)</h2>
                                 </div>
-                                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingItem(null); setModalType('divida-angelica'); }}><Plus size={14} /></button>
+                                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingItem(null); setModalType('divida-user1'); }}><Plus size={14} /></button>
                             </div>
                             <div className="task-list">
-                                {store.dividasAngelica.map(d => (
+                                {store.dividasUser1.map(d => (
                                     <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', opacity: d.paid ? 0.6 : 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleDividaAngelicaPaid(d.id)}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleDividaUser1Paid(d.id)}>
                                             <div style={{ marginTop: 2 }}>
                                                 {d.paid ? <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />}
                                             </div>
@@ -314,13 +314,13 @@ export function Finance() {
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                             <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(d.total)}</span>
-                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-text-tertiary)' }} onClick={() => { setEditingItem(d); setModalType('divida-angelica'); }}><Pencil size={14} /></button>
-                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaAngelica(d.id)}><Trash2 size={14} /></button>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-text-tertiary)' }} onClick={() => { setEditingItem(d); setModalType('divida-user1'); }}><Pencil size={14} /></button>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaUser1(d.id)}><Trash2 size={14} /></button>
                                         </div>
                                     </div>
                                 ))}
                                 <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-                                    <span>TOTAL</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalDivAngelica)}</span>
+                                    <span>TOTAL</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalDivUser1)}</span>
                                 </div>
                             </div>
                         </div>
@@ -328,14 +328,14 @@ export function Finance() {
                         <div className="card">
                             <div className="card-header">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <h2 className="card-title">Dívidas Ocultas (Isis)</h2>
+                                    <h2 className="card-title">Dívidas Ocultas (User 2)</h2>
                                 </div>
-                                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingItem(null); setModalType('divida-isis'); }}><Plus size={14} /></button>
+                                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingItem(null); setModalType('divida-user2'); }}><Plus size={14} /></button>
                             </div>
                             <div className="task-list">
-                                {store.dividasIsis.map(d => (
+                                {store.dividasUser 2.map(d => (
                                     <div key={d.id} className="task-item" style={{ justifyContent: 'space-between', padding: '10px 14px', opacity: d.paid ? 0.6 : 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleDividaIsisPaid(d.id)}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }} onClick={() => store.toggleDividaUser 2Paid(d.id)}>
                                             <div style={{ marginTop: 2 }}>
                                                 {d.paid ? <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--color-border-default)' }} />}
                                             </div>
@@ -348,13 +348,13 @@ export function Finance() {
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                             <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{formatCurrency(d.total)}</span>
-                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-text-tertiary)' }} onClick={() => { setEditingItem(d); setModalType('divida-isis'); }}><Pencil size={14} /></button>
-                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaIsis(d.id)}><Trash2 size={14} /></button>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-text-tertiary)' }} onClick={() => { setEditingItem(d); setModalType('divida-user2'); }}><Pencil size={14} /></button>
+                                            <button className="btn btn-icon btn-ghost" style={{ padding: 4, height: 'auto', color: 'var(--color-error)' }} onClick={() => store.removeDividaUser 2(d.id)}><Trash2 size={14} /></button>
                                         </div>
                                     </div>
                                 ))}
                                 <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-default)', display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-                                    <span>TOTAL</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalDivIsis)}</span>
+                                    <span>TOTAL</span><span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalDivUser 2)}</span>
                                 </div>
                             </div>
                         </div>

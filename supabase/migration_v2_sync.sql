@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS family_finance_dividas (
   name TEXT NOT NULL,
   total DECIMAL(12,2) NOT NULL DEFAULT 0,
   descricao TEXT DEFAULT '',
-  owner TEXT NOT NULL DEFAULT 'angelica' CHECK (owner IN ('angelica', 'isis')),
+  owner TEXT NOT NULL DEFAULT 'user1' CHECK (owner IN ('user1', 'user2')),
   paid BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

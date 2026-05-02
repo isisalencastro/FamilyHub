@@ -86,16 +86,16 @@ describe('taskStore', () => {
     test('deve filtrar tarefas por workspace', async () => {
         const store = useTaskStore.getState();
         await store.addTask({ workspaceId: 'familia', title: 'Família 1', status: 'pending', priority: 'low' });
-        await store.addTask({ workspaceId: 'isis', title: 'Isis 1', status: 'pending', priority: 'low' });
+        await store.addTask({ workspaceId: 'user2', title: 'User 2 1', status: 'pending', priority: 'low' });
         await store.addTask({ workspaceId: 'familia', title: 'Família 2', status: 'done', priority: 'high' });
 
         const familiaTasks = store.getTasksByWorkspace('familia');
         expect(familiaTasks.length).toBe(2);
         expect(familiaTasks.every(t => t.workspaceId === 'familia')).toBe(true);
 
-        const isisTasks = store.getTasksByWorkspace('isis');
-        expect(isisTasks.length).toBe(1);
-        expect(isisTasks[0].title).toBe('Isis 1');
+        const user2Tasks = store.getTasksByWorkspace('user2');
+        expect(user2Tasks.length).toBe(1);
+        expect(user2Tasks[0].title).toBe('User 2 1');
     });
 
     test('deve adicionar múltiplas tarefas e manter a ordem (mais recente primeiro)', async () => {
