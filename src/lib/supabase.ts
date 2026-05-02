@@ -24,4 +24,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 // Helper to check if Supabase is configured
-export const isSupabaseConfigured = () => !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
+export const isSupabaseConfigured = () => {
+    return !!SUPABASE_URL && !!SUPABASE_ANON_KEY && !SUPABASE_URL.includes('SUA_URL_AQUI') && !SUPABASE_ANON_KEY.includes('SUA_CHAVE');
+};

@@ -25,6 +25,7 @@ import { useUpdateStore } from '@/stores/updateStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { UpdateToast } from '@/components/UpdateToast';
 import { requestNotificationPermission, checkReminders } from '@/lib/notificationService';
+import { SupabaseSetupModal } from '@/components/SupabaseSetupModal';
 
 function App() {
   // ── Existing stores ──
@@ -143,6 +144,7 @@ function App() {
         </Routes>
       </div>
       <UpdateToast />
+      <SupabaseSetupModal />
     </BrowserRouter>
   );
 }
